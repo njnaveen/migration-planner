@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Intune Migration Planner</title>
+</head>
+<body>
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border: 1px solid #e1dfdd; padding: 25px; border-radius: 8px; max-width: 950px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); margin: auto;">
+  <h3 style="margin-top: 0; color: #0078D4; text-align: center;">Intune Migration Resource & Timeline Planner</h3>
+  
+  <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+    <div style="flex: 1; min-width: 170px;">
+      <label for="osType" style="font-size: 14px; font-weight: 600; color: #323130;">Target OS:</label><br>
+      <select id="osType" onchange="toggleAppInput()" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
+        <option value="windows">Windows</option>
+        <option value="mobile">Mobile (iOS/Android)</option>
+        <option value="mac">Mac OS</option>
+      </select>
+    </div>
+    <div style="flex: 1; min-width: 170px;">
+      <label for="totalDevices" style="font-size: 14px; font-weight: 600; color: #323130;">Total Devices:</label><br>
+      <input type="number" id="totalDevices" value="73000" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
+    </div>
+    <div style="flex: 1; min-width: 170px;">
+      <label for="batchSize" style="font-size: 14px; font-weight: 600; color: #323130;">Devices per Batch:</label><br>
+      <input type="number" id="batchSize" value="2500" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
+    </div>
+    <div style="flex: 1; min-width: 170px;">
+      <label for="batchesPerWeek" style="font-size: 14px; font-weight: 600; color: #323130;">Target Batches/Week:</label><br>
+      <input type="number" id="batchesPerWeek" value="1" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
+    </div>
+    <div id="appsContainer" style="flex: 1; min-width: 170px; display: block;">
+      <label for="totalApps" style="font-size: 14px; font-weight: 600; color: #323130;">Total Apps to Package:</label><br>
+      <input type="number" id="totalApps" value="400" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
+    </div>
+  </div>
+  
+  <button onclick="calculatePlan()" style="background-color: #0078D4; color: white; font-weight: bold; border: none; padding: 12px 15px; cursor: pointer; border-radius: 4px; width: 100%; font-size: 16px;">Generate FTE Matrix Plan</button>
+  
+  <div id="resultsArea" style="display: none; margin-top: 25px; padding-top: 20px; border-top: 2px solid #e1dfdd;">
+    <div id="mathContextBanner" style="display: none; background-color: #e1f0fa; border-left: 4px solid #0078d4; padding: 10px 15px; margin-bottom: 20px; font-size: 13px; color: #323130;"></div>
+    <h4>Month-by-Month Phase & FTE Matrix:</h4>
+    <div id="matrixTableContainer" style="overflow-x: auto; margin-bottom: 20px;"></div>
+    
+    <div id="paywallSection" style="display: none; text-align: center; background-color: #f8f9fa; padding: 25px; border: 1px dashed #c8c6c4;">
+      <h3>🔒 Unlock the Full Data</h3>
+      <p style="color: #605e5c;">Get the complete end-to-end month-by-month resource breakdown for just ₹99.99.</p>
+      
+      <!-- PASTE YOUR RAZORPAY BUTTON SNIPPET BELOW -->
+      <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('status') === 'paid') {
+            localStorage.setItem('planner_unlocked', 'true');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            alert("Payment successful! Unlocking data...");
+        }
+        if(localStorage.getItem('planner_unlocked') === 'true') {
+            document.getElementById('paywallSection').style.display = 'none';
+            calculatePlan(); 
+        }
+        toggleAppInput();
+    });
+
+    function toggleAppInput() {
+      let os = document.getElementById('osType').value;
+      document.getElementById('appsContainer').style.display = (os === 'mobile') ? 'none' : 'block';
+    }
+
+    function calculatePlan() {
+      let osType = document.getElementById('osType').value;
+      let devices = parseInt(document.getElementById('totalDevices').value);
+      let batchSize = parseInt(document.getElementById('batchSize').value);
+      let batchesPerWeek = parseInt(document.getElementById('batchesPerWeek').value);
+      let totalApps = parseInt(document.getElementById('totalApps').value) || 0;
+      let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
+      
+      if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
+        let assessmentM = 1, foundationM = 3, pilotM = 2, hypercareM = 2; 
+        let actualWeeklyThroughput = batchSize * batchesPerWeek;
+        let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
+        let migrationM = Math.max(1, Math.ceil(migrationWeeks / 4.33));
+        let deploy = (osType === 'mobile') ? Math.max(1, Math.ceil(actualWeeklyThroughput / 60)) : Math.max(1, Math.ceil(actualWeeklyThroughput / 600));
+        let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((foundationM * 4.33) * 100)));
+        let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
+        let visiblePoint = Math.ceil(totalMonths * 0.25); 
+
+        function getFTE(peak, role, m) {
+            let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
+            let mult = (role === 'Arch') ? ((phase !== "Migration" && phase !== "Hypercare") ? 1.0 : 0.5) : (role === 'End') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'App') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0 : 1.0) : (role === 'Gpo') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'Dep') ? ((phase === "Pilot") ? 0.6 : (phase === "Migration") ? 1.0 : 0) : ((phase === "Hypercare") ? 1.0 : 0);
+            return Math.max(1, Math.round(peak * mult));
+        }
+
+        let matrixHTML = '<table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; border: 1px solid #a19f9d;">';
+        matrixHTML += '<tr style="background-color: #f3f2f1; font-weight: bold;"><td>Role</td>';
+        for (let i = 1; i <= totalMonths; i++) { matrixHTML += '<td>M'+i+'</td>'; }
+        matrixHTML += '</tr>';
+
+        const roles = [['Intune Architects', 'Arch', Math.max(1, Math.ceil(devices / 35000))], ['Endpoint Engineers', 'End', Math.max(1, Math.ceil(devices / 18000))], ['App Packaging', 'App', appFTE], ['GPO Experts', 'Gpo', Math.max(1, Math.ceil(devices / 20000))], ['Deployment', 'Dep', deploy], ['Hypercare', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800))]];
+        
+        roles.forEach(role => {
+            if(role[1] === 'App' && osType === 'mobile') return;
+            matrixHTML += '<tr><td style="text-align: left;">'+role[0]+'</td>';
+            for (let i = 1; i <= totalMonths; i++) {
+                matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td>🔒</td>' : '<td>'+getFTE(role[2], role[1], i)+'</td>';
+            }
+            matrixHTML += '</tr>';
+        });
+
+        matrixHTML += '</table>';
+        document.getElementById('matrixTableContainer').innerHTML = matrixHTML;
+        document.getElementById('paywallSection').style.display = isUnlocked ? 'none' : 'block';
+        document.getElementById('resultsArea').style.display = 'block';
+      }
+    }
+  </script>
+</div>
+</body>
+</html>
