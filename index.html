@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intune Migration Planner Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Include html2pdf.js for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --sidebar-bg: #0f172a;
@@ -72,7 +74,7 @@
         .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-dark);}
         .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; outline: none; }
         
-        .btn-action { background: var(--primary); color: white; border: none; padding: 11px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px;}
+        .btn-action { background: var(--primary); color: white; border: none; padding: 11px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;}
         .btn-action:hover { background: var(--primary-hover); }
         .flex-between { display: flex; justify-content: space-between; align-items: center; margin-top: 20px;}
 
@@ -85,8 +87,9 @@
         .check-list li { display: flex; align-items: center; gap: 8px; }
         .check-list i { color: #10b981; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-        .data-table th, .data-table td { border: 1px solid var(--border-color); padding: 8px 12px; }
+        .data-table th, .data-table td { border: 1px solid var(--border-color); padding: 10px 12px; }
         .data-table th { background: #f8fafc; font-weight: 600; }
+        .data-table input[type="date"] { width: 100%; font-family: inherit; font-size: 13px; cursor: pointer;}
         .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
         .dot-green { background: #10b981; }
         .dot-red { background: #ef4444; }
@@ -115,6 +118,9 @@
         .bg-pilot { background-color: var(--c-pilot); }
         .bg-mig { background-color: var(--c-mig); }
         .bg-hyp { background-color: var(--c-hyp); }
+
+        /* PDF Export Container (Hidden) */
+        #pdf-export-container { display: none; background: white; padding: 40px; width: 800px; color: black; font-family: 'Helvetica', sans-serif;}
     </style>
 </head>
 <body>
@@ -236,11 +242,13 @@
                         <div class="card">
                             <div class="card-header"><i class="fa-solid fa-clock"></i> 2. Project Timeline</div>
                             <table class="data-table">
-                                <tr><td>Project Start</td><td><input type="date" value="2027-01-01" style="border:none; outline:none; background:transparent;"></td></tr>
-                                <tr><td>Pilot Start</td><td><input type="date" value="2027-02-15" style="border:none; outline:none; background:transparent;"></td></tr>
-                                <tr><td>Production Start</td><td><input type="date" value="2027-03-01" style="border:none; outline:none; background:transparent;"></td></tr>
-                                <tr><td>Hypercare Start</td><td><input type="date" value="2027-07-01" style="border:none; outline:none; background:transparent;"></td></tr>
+                                <!-- Dates are populated automatically via JS -->
+                                <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()" style="border:none; outline:none; background:transparent;"></td></tr>
+                                <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="border:none; outline:none; background:transparent; color: var(--text-muted);"></td></tr>
+                                <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="border:none; outline:none; background:transparent; color: var(--text-muted);"></td></tr>
+                                <tr><td>Hypercare Start</td><td><input type="date" id="date-hyper" readonly style="border:none; outline:none; background:transparent; color: var(--text-muted);"></td></tr>
                             </table>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">* Subsequent dates are calculated automatically based on FTE Phase durations.</div>
                         </div>
                     </div>
 
@@ -342,7 +350,7 @@
             <!-- TAB 4: EXECUTIVE DASHBOARD -->
             <div id="tab-4" class="tab-content">
                 <h3 style="margin-top:0;">Executive Summary</h3>
-                <div class="dashboard-metrics">
+                <div class="dashboard-metrics" id="pdf-summary-cards">
                     <div class="metric-card">
                         <i class="fa-solid fa-heart-pulse metric-icon" style="color: #10b981;"></i>
                         <div class="metric-data"><label>Project Health</label><div class="val">91%</div></div>
@@ -393,23 +401,29 @@
                     <p style="color: var(--text-muted); font-size: 14px;">Select the sections to include in the final customer-facing export document:</p>
                     
                     <ul class="check-list" style="margin-bottom: 25px; font-size: 14px;">
-                        <li><input type="checkbox" checked> Executive Summary</li>
-                        <li><input type="checkbox" checked> Resource Matrix (FTE Grid)</li>
-                        <li><input type="checkbox" checked> Timeline & Migration Waves</li>
-                        <li><input type="checkbox" checked> Risks & Dependencies</li>
-                        <li><input type="checkbox" checked> Assumptions & Recommendations</li>
+                        <li><input type="checkbox" id="chk-summary" checked> Executive Summary</li>
+                        <li><input type="checkbox" id="chk-matrix" checked> Resource Matrix (FTE Grid)</li>
+                        <li><input type="checkbox" id="chk-timeline" checked> Timeline & Migration Waves</li>
+                        <li><input type="checkbox" id="chk-risks" checked> Risks & Dependencies</li>
+                        <li><input type="checkbox" id="chk-assumptions" checked> Assumptions & Recommendations</li>
                     </ul>
 
-                    <button class="btn-action" style="width: 100%; justify-content: center;" onclick="alert('Export functionality is ready! Downloading PDF...')"><i class="fa-solid fa-download"></i> Generate Executive Report</button>
+                    <button class="btn-action" id="btn-export" style="width: 100%; justify-content: center;" onclick="generatePDF()">
+                        <i class="fa-solid fa-download"></i> Generate Executive Report
+                    </button>
                 </div>
             </div>
 
         </div>
     </div>
+    
+    <!-- Hidden container used strictly for formatting the PDF download -->
+    <div id="pdf-export-container"></div>
 
     <!-- APPLICATION LOGIC -->
     <script>
         let isUnlocked = false;
+        let globalProjectData = {}; // Store data for PDF generation
 
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -421,21 +435,22 @@
             }
 
             isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
+            
+            // Set default Project Start Date to today
+            document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
+            
             handlePlatformChange();
         });
 
         function switchTab(tabIndex) {
-            // Lock tabs 3, 4, 5 if unpaid
             if (!isUnlocked && tabIndex > 2) {
                 alert("Please unlock the planner to access the Setup, Dashboard, and Export features.");
                 return;
             }
 
-            // Hide all tabs, remove active classes
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             
-            // Show selected tab
             document.getElementById('tab-' + tabIndex).classList.add('active');
             document.getElementById('nav-step-' + tabIndex).classList.add('active');
         }
@@ -449,13 +464,11 @@
             let os = document.getElementById('osType').value;
             document.getElementById('appsContainer').style.display = (os === 'mobile') ? 'none' : 'block';
             
-            // Toggle Platform Config lists in Tab 3
             document.getElementById('config-windows').style.display = 'none';
             document.getElementById('config-mobile').style.display = 'none';
             document.getElementById('config-mac').style.display = 'none';
             document.getElementById('config-' + os).style.display = 'block';
 
-            // Set Assumptions in Tab 4
             let assumptions = "";
             if (os === 'windows') {
                 assumptions = `
@@ -465,6 +478,7 @@
             } else if (os === 'mobile') {
                 assumptions = `
                     <li><i class="fa-solid fa-circle-dot"></i> Assumes Apple Business Manager and Android Enterprise are already configured.</li>
+                    <li><i class="fa-solid fa-circle-dot"></i> Shared Device deployments strictly assume NO user affinity per compliance baseline.</li>
                     <li><i class="fa-solid fa-circle-dot"></i> Uses ADE/VPP and Managed Google Play where applicable.</li>
                     <li><i class="fa-solid fa-circle-dot"></i> Hypercare duration is assumed to be 1 month.</li>`;
             } else {
@@ -476,8 +490,15 @@
             document.getElementById('assumptions-list').innerHTML = assumptions;
         }
 
+        // Date helper function
+        function addMonths(dateStr, monthsToAdd) {
+            let d = new Date(dateStr);
+            d.setMonth(d.getMonth() + monthsToAdd);
+            return d.toISOString().split('T')[0];
+        }
+
         function calculatePlan() {
-            handlePlatformChange(); // Ensure dynamic fields match OS selection
+            handlePlatformChange(); 
             
             let osType = document.getElementById('osType').value;
             let devices = parseInt(document.getElementById('totalDevices').value);
@@ -497,6 +518,19 @@
 
                 let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
                 let visiblePoint = Math.ceil(totalMonths * 0.25); 
+
+                // --- DYNAMIC TIMELINE DATE CALCULATIONS ---
+                let startDate = document.getElementById('date-start').value;
+                if(startDate) {
+                    let pilotDate = addMonths(startDate, assessmentM + foundationM);
+                    let prodDate = addMonths(pilotDate, pilotM);
+                    let hyperDate = addMonths(prodDate, migrationM);
+                    
+                    document.getElementById('date-pilot').value = pilotDate;
+                    document.getElementById('date-prod').value = prodDate;
+                    document.getElementById('date-hyper').value = hyperDate;
+                }
+                // ------------------------------------------
 
                 function getFTE(peak, role, m) {
                     if (peak === 0) return 0;
@@ -563,20 +597,16 @@
                 }
                 matrixHTML += '</tr></table>';
 
-                // Inject Data
                 document.getElementById('matrixTableContainer').innerHTML = matrixHTML;
 
-                // Sync Global Data
+                // Sync Global Data for display and PDF
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
                 let totalBatches = Math.ceil(devices / batchSize);
 
                 document.getElementById('snap-platform').innerText = platformName;
                 document.getElementById('dash-platform').innerText = platformName;
-                
                 document.getElementById('snap-devices').innerText = devices.toLocaleString();
                 document.getElementById('dash-waves').innerText = totalBatches;
-
-                // Required Resources in Tab 3 Data Sync
                 document.getElementById('res-req-arch').innerText = reqArch;
                 document.getElementById('res-req-eng').innerText = reqEnd;
                 document.getElementById('res-req-app').innerText = appFTE;
@@ -591,8 +621,101 @@
                     document.getElementById('dash-peak').innerText = peakFTE;
                     document.getElementById('snap-personmonths').innerText = totalPersonMonths;
                     document.getElementById('dash-pm').innerText = totalPersonMonths;
+                    
+                    // Store for PDF Generator
+                    globalProjectData = { matrixHTML, platformName, totalMonths, peakFTE, totalBatches, totalPersonMonths };
                 }
             }
+        }
+
+        // --- PDF GENERATION LOGIC ---
+        function generatePDF() {
+            let btn = document.getElementById('btn-export');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
+            
+            // Build the HTML structure for the PDF
+            let pdfContent = `
+                <div style="margin-bottom: 30px; border-bottom: 2px solid #0284c7; padding-bottom: 10px;">
+                    <h1 style="color: #0f172a; margin:0;">Intune Migration Executive Report</h1>
+                    <p style="color: #64748b; margin: 5px 0 0 0;">Generated by LZebra Planner</p>
+                </div>
+            `;
+
+            if(document.getElementById('chk-summary').checked) {
+                pdfContent += `
+                <h3 style="color: #0284c7;">Executive Summary</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: left;">
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0;"><b>Platform:</b> ${globalProjectData.platformName}</td>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0;"><b>Project Health:</b> 91%</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0;"><b>Duration:</b> ${globalProjectData.totalMonths} Months</td>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0;"><b>Peak FTE:</b> ${globalProjectData.peakFTE}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0;"><b>Migration Waves:</b> ${globalProjectData.totalBatches}</td>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0;"><b>Person Months:</b> ${globalProjectData.totalPersonMonths}</td>
+                    </tr>
+                </table>`;
+            }
+
+            if(document.getElementById('chk-timeline').checked) {
+                pdfContent += `
+                <h3 style="color: #0284c7;">Project Timeline</h3>
+                <ul style="line-height: 1.8; color: #1e293b; margin-bottom: 20px;">
+                    <li><b>Project Start:</b> ${document.getElementById('date-start').value}</li>
+                    <li><b>Pilot Start:</b> ${document.getElementById('date-pilot').value}</li>
+                    <li><b>Production Start:</b> ${document.getElementById('date-prod').value}</li>
+                    <li><b>Hypercare Start:</b> ${document.getElementById('date-hyper').value}</li>
+                </ul>`;
+            }
+
+            if(document.getElementById('chk-matrix').checked) {
+                pdfContent += `
+                <h3 style="color: #0284c7;">Resource Matrix (FTE Grid)</h3>
+                <div style="font-size: 11px; margin-bottom: 20px;">
+                    ${globalProjectData.matrixHTML}
+                </div>`;
+            }
+
+            if(document.getElementById('chk-risks').checked) {
+                pdfContent += `
+                <h3 style="color: #0284c7;">Risks & Dependencies</h3>
+                <p><b>Overall Risk:</b> Medium</p>
+                <ul style="line-height: 1.6; color: #1e293b; margin-bottom: 20px;">
+                    <li>Portal Connections Ready</li>
+                    <li>Intune Licenses Assigned</li>
+                    <li>PKI Infrastructure Ready (Pending)</li>
+                    <li>Network/VPN Tested (Pending)</li>
+                </ul>`;
+            }
+
+            if(document.getElementById('chk-assumptions').checked) {
+                pdfContent += `
+                <h3 style="color: #0284c7;">Assumptions & Notes</h3>
+                <ul style="line-height: 1.6; color: #1e293b; font-size: 12px;">
+                    ${document.getElementById('assumptions-list').innerHTML}
+                </ul>`;
+            }
+
+            let container = document.getElementById('pdf-export-container');
+            container.innerHTML = pdfContent;
+            container.style.display = 'block'; // Make it temporarily visible for the parser
+
+            var opt = {
+                margin:       0.5,
+                filename:     'Intune_Migration_Report.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            // Generate and save
+            html2pdf().set(opt).from(container).save().then(() => {
+                container.style.display = 'none'; // Hide it again
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Generate Executive Report'; // Reset button
+            });
         }
     </script>
 </body>
