@@ -179,7 +179,7 @@
                         </div>
                         <div class="input-group">
                             <label>Total Devices</label>
-                            <input type="number" id="totalDevices" value="73000">
+                            <input type="number" id="totalDevices" value="50000">
                         </div>
                         <div class="input-group">
                             <label>Devices per Batch</label>
@@ -290,10 +290,10 @@
                         <div class="card-header"><i class="fa-solid fa-box-open"></i> 4. Application Planning</div>
                         <table class="data-table">
                             <tr><th>Status</th><th>Count</th></tr>
-                            <tr><td><span class="status-dot dot-green"></span> Ready</td><td>250</td></tr>
-                            <tr><td><span class="status-dot dot-red"></span> Needs Packaging</td><td>95</td></tr>
-                            <tr><td><span class="status-dot dot-yellow"></span> Vendor Apps</td><td>30</td></tr>
-                            <tr><td><span class="status-dot dot-yellow"></span> Testing Required</td><td>25</td></tr>
+                            <tr><td><span class="status-dot dot-green"></span> Ready</td><td id="app-ready-count">-</td></tr>
+                            <tr><td><span class="status-dot dot-red"></span> Needs Packaging</td><td id="app-pack-count">-</td></tr>
+                            <tr><td><span class="status-dot dot-yellow"></span> Vendor Apps</td><td id="app-vendor-count">-</td></tr>
+                            <tr><td><span class="status-dot dot-yellow"></span> Testing Required</td><td id="app-test-count">-</td></tr>
                         </table>
                     </div>
                     <div class="card">
@@ -310,12 +310,8 @@
                 <div class="grid-3">
                     <div class="card">
                         <div class="card-header"><i class="fa-solid fa-water"></i> 6. Migration Waves</div>
-                        <table class="data-table">
-                            <tr><th>Wave</th><th>Devices</th><th>Status</th></tr>
-                            <tr><td>Pilot</td><td>500</td><td>Planned</td></tr>
-                            <tr><td>Wave 1</td><td>3,000</td><td>Planned</td></tr>
-                            <tr><td>Wave 2</td><td>3,000</td><td>Planned</td></tr>
-                            <tr><td>Wave 3</td><td>4,500</td><td>Planned</td></tr>
+                        <table class="data-table" id="migration-waves-table">
+                            <!-- Populated dynamically via JS -->
                         </table>
                     </div>
                     <div class="card">
@@ -530,8 +526,46 @@
                     document.getElementById('date-prod').value = prodDate;
                     document.getElementById('date-hyper').value = hyperDate;
                 }
-                // ------------------------------------------
+                
+                // --- DYNAMIC APP PLANNING MATH ---
+                let appsReady = Math.round(totalApps * 0.60);
+                let appsPack = Math.round(totalApps * 0.25);
+                let appsVend = Math.round(totalApps * 0.08);
+                let appsTest = totalApps - appsReady - appsPack - appsVend; // Make sure it totals 100%
 
+                document.getElementById('app-ready-count').innerText = appsReady.toLocaleString();
+                document.getElementById('app-pack-count').innerText = appsPack.toLocaleString();
+                document.getElementById('app-vendor-count').innerText = appsVend.toLocaleString();
+                document.getElementById('app-test-count').innerText = appsTest.toLocaleString();
+
+                // --- DYNAMIC MIGRATION WAVES MATH ---
+                let waveTable = `<tr><th>Wave</th><th>Devices</th><th>Status</th></tr>`;
+                let remDevs = devices;
+                
+                // Pilot wave calculation (Max 500 or 5% of total devices)
+                let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
+                if(pilotSize > 0) {
+                    waveTable += `<tr><td>Pilot</td><td>${pilotSize.toLocaleString()}</td><td>Planned</td></tr>`;
+                    remDevs -= pilotSize;
+                }
+                
+                // Subsequent waves calculation
+                let waveNum = 1;
+                while(remDevs > 0 && waveNum <= 5) { // Cap at 5 rows to keep UI clean
+                    if(waveNum === 5 && remDevs > batchSize) {
+                        let remWaves = Math.ceil(remDevs / batchSize);
+                        waveTable += `<tr><td>Waves ${waveNum} to ${waveNum + remWaves - 1}</td><td>${remDevs.toLocaleString()}</td><td>Planned</td></tr>`;
+                        remDevs = 0; // End loop
+                    } else {
+                        let bSize = Math.min(batchSize, remDevs);
+                        waveTable += `<tr><td>Wave ${waveNum}</td><td>${bSize.toLocaleString()}</td><td>Planned</td></tr>`;
+                        remDevs -= bSize;
+                        waveNum++;
+                    }
+                }
+                document.getElementById('migration-waves-table').innerHTML = waveTable;
+
+                // --- FTE MATRIX GENERATION ---
                 function getFTE(peak, role, m) {
                     if (peak === 0) return 0;
                     let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
@@ -551,7 +585,7 @@
                     ['Hypercare / Support', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800))]
                 ];
 
-                // Build Matrix
+                // Build Matrix HTML
                 let matrixHTML = '<table class="matrix-table">';
                 matrixHTML += '<tr style="font-weight: 600; font-size: 12px;"><td style="border: none; background: white;"></td>';
                 if (assessmentM > 0) matrixHTML += `<td colspan="${assessmentM}" class="bg-assess">Assessment</td>`;
