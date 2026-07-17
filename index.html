@@ -104,6 +104,18 @@
         .gantt-label { width: 100px; font-weight: 500; }
         .gantt-track { flex: 1; background: #f1f5f9; height: 16px; border-radius: 8px; position: relative; }
         .gantt-bar { position: absolute; height: 100%; border-radius: 8px; }
+
+        .paywall { text-align: center; background: #f8fafc; padding: 40px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-top: 20px; }
+        .paywall h3 { margin-top: 0; color: var(--text-dark); font-size: 18px;}
+        .locked-cell { color: transparent; text-shadow: 0 0 5px rgba(0,0,0,0.4); user-select: none; background: #f1f5f9; }
+        
+        /* PLANNER STEPPER */
+        .stepper { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
+        .step { font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px; font-size: 14px; transition: 0.2s; }
+        .step:hover { color: var(--primary); }
+        .step.active { color: var(--primary); border-bottom: 3px solid var(--primary); margin-bottom: -13px; padding-bottom: 10px;}
+        .tab-content { display: none; animation: fadeIn 0.2s; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
@@ -148,88 +160,123 @@
                  ========================================== -->
             <div id="view-planner" class="main-view active">
                 
-                <div class="card">
-                    <div class="card-header"><i class="fa-solid fa-sliders"></i> Migration Scope Parameters</div>
-                    <div class="input-grid">
-                        <div class="input-group">
-                            <label>Select Platform</label>
-                            <select id="osType" onchange="handlePlatformChange()">
-                                <option value="windows">Windows</option>
-                                <option value="mobile">Mobile (iOS/Android)</option>
-                                <option value="mac">Mac OS</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Total Devices</label>
-                            <input type="number" id="totalDevices" value="50000">
-                        </div>
-                        <div class="input-group">
-                            <label>Devices per Batch</label>
-                            <input type="number" id="batchSize" value="2500">
-                        </div>
-                        <div class="input-group">
-                            <label>Target Batches / Week</label>
-                            <input type="number" id="batchesPerWeek" value="1">
-                        </div>
-                        <div class="input-group" id="appsContainer">
-                            <label>Total Apps to Package</label>
-                            <input type="number" id="totalApps" value="400">
-                        </div>
-                    </div>
+                <div class="stepper">
+                    <div class="step active" id="nav-step-1" onclick="switchWizardTab(1)"><i class="fa-solid fa-1"></i> Platform & Scope</div>
+                    <div class="step" id="nav-step-2" onclick="switchWizardTab(2)"><i class="fa-solid fa-2"></i> Initial FTE Matrix</div>
+                    <div class="step" id="nav-step-3" onclick="switchWizardTab(3)"><i class="fa-solid fa-3"></i> Strategic Settings</div>
                 </div>
 
-                <div class="grid-2">
-                    <div>
-                        <div class="card">
-                            <div class="card-header"><i class="fa-solid fa-chess-knight"></i> Migration Strategy</div>
+                <!-- Wizard Tab 1: Scope -->
+                <div id="tab-1" class="tab-content active">
+                    <div class="card">
+                        <div class="card-header"><i class="fa-solid fa-sliders"></i> Migration Scope Parameters</div>
+                        <div class="input-grid">
                             <div class="input-group">
-                                <label>Migration Type</label>
-                                <select>
-                                    <option>Wave Based</option>
-                                    <option>Big Bang</option>
-                                    <option>Ring Based</option>
-                                    <option>Country Based</option>
+                                <label>Select Platform</label>
+                                <select id="osType" onchange="handlePlatformChange()">
+                                    <option value="windows">Windows</option>
+                                    <option value="mobile">Mobile (iOS/Android)</option>
+                                    <option value="mac">Mac OS</option>
                                 </select>
                             </div>
+                            <div class="input-group">
+                                <label>Total Devices</label>
+                                <input type="number" id="totalDevices" value="50000">
+                            </div>
+                            <div class="input-group">
+                                <label>Devices per Batch</label>
+                                <input type="number" id="batchSize" value="2500">
+                            </div>
+                            <div class="input-group">
+                                <label>Target Batches / Week</label>
+                                <input type="number" id="batchesPerWeek" value="1">
+                            </div>
+                            <div class="input-group" id="appsContainer">
+                                <label>Total Apps to Package</label>
+                                <input type="number" id="totalApps" value="400">
+                            </div>
                         </div>
+                        <div class="flex-between">
+                            <div></div>
+                            <button class="btn-action" onclick="calculateAndAdvance(2)">Calculate FTE Matrix <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wizard Tab 2: Matrix Preview -->
+                <div id="tab-2" class="tab-content">
+                    <div class="card" style="padding: 0; overflow: hidden;">
+                        <div class="card-header" style="padding: 20px; border-bottom: none; margin: 0;"><i class="fa-regular fa-calendar-days"></i> Month-by-Month Phase & FTE Matrix Preview</div>
+                        <div style="overflow-x: auto; padding: 0 20px 20px 20px;" id="tab2-matrix-container"></div>
+                    </div>
+                    
+                    <div id="paywallSection" class="paywall">
+                        <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Dashboard</h3>
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining 75% of your matrix, timeline, charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
+                        <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
+                    </div>
+
+                    <div class="flex-between" id="tab-2-actions" style="display: none;">
+                        <button class="btn-action" style="background: var(--text-muted);" onclick="switchWizardTab(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button class="btn-action" onclick="switchWizardTab(3)">Continue to Configuration <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Wizard Tab 3: Configuration -->
+                <div id="tab-3" class="tab-content">
+                    <div class="grid-2">
+                        <div>
+                            <div class="card">
+                                <div class="card-header"><i class="fa-solid fa-chess-knight"></i> Migration Strategy</div>
+                                <div class="input-group">
+                                    <label>Migration Type</label>
+                                    <select>
+                                        <option>Wave Based</option>
+                                        <option>Big Bang</option>
+                                        <option>Ring Based</option>
+                                        <option>Country Based</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><i class="fa-solid fa-clock"></i> Project Timeline Target</div>
+                                <table class="data-table">
+                                    <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()"></td></tr>
+                                    <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="color: var(--text-muted);"></td></tr>
+                                    <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="color: var(--text-muted);"></td></tr>
+                                </table>
+                            </div>
+                        </div>
+
                         <div class="card">
-                            <div class="card-header"><i class="fa-solid fa-clock"></i> Project Timeline Target</div>
-                            <table class="data-table">
-                                <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()"></td></tr>
-                                <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="color: var(--text-muted);"></td></tr>
-                                <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="color: var(--text-muted);"></td></tr>
-                            </table>
+                            <div class="card-header"><i class="fa-solid fa-laptop-code"></i> Platform Baselines</div>
+                            <ul class="check-list" id="config-windows">
+                                <li><input type="checkbox" checked> Autopilot Provisioning</li>
+                                <li><input type="checkbox" checked> Co-management</li>
+                                <li><input type="checkbox" checked> Hybrid Azure AD Join</li>
+                                <li><input type="checkbox" checked> Windows Defender AV</li>
+                                <li><input type="checkbox" checked> BitLocker Encryption</li>
+                            </ul>
+                            <ul class="check-list" id="config-mobile" style="display:none;">
+                                <li><input type="checkbox" checked> Apple Business Manager (ABM)</li>
+                                <li><input type="checkbox" checked> ADE / VPP Configured</li>
+                                <li><input type="checkbox" checked> Android Enterprise</li>
+                                <li><input type="checkbox" checked> Shared Devices (No User Affinity)</li>
+                            </ul>
+                            <ul class="check-list" id="config-mac" style="display:none;">
+                                <li><input type="checkbox" checked> FileVault Encryption</li>
+                                <li><input type="checkbox" checked> PPPC & System Extensions</li>
+                                <li><input type="checkbox" checked> Platform SSO</li>
+                            </ul>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header"><i class="fa-solid fa-laptop-code"></i> Platform Baselines</div>
-                        <ul class="check-list" id="config-windows">
-                            <li><input type="checkbox" checked> Autopilot Provisioning</li>
-                            <li><input type="checkbox" checked> Co-management</li>
-                            <li><input type="checkbox" checked> Hybrid Azure AD Join</li>
-                            <li><input type="checkbox" checked> Windows Defender AV</li>
-                            <li><input type="checkbox" checked> BitLocker Encryption</li>
-                        </ul>
-                        <ul class="check-list" id="config-mobile" style="display:none;">
-                            <li><input type="checkbox" checked> Apple Business Manager (ABM)</li>
-                            <li><input type="checkbox" checked> ADE / VPP Configured</li>
-                            <li><input type="checkbox" checked> Android Enterprise</li>
-                            <!-- Explicit config based on requirements -->
-                            <li><input type="checkbox" checked> Shared Devices (No User Affinity)</li>
-                        </ul>
-                        <ul class="check-list" id="config-mac" style="display:none;">
-                            <li><input type="checkbox" checked> FileVault Encryption</li>
-                            <li><input type="checkbox" checked> PPPC & System Extensions</li>
-                            <li><input type="checkbox" checked> Platform SSO</li>
-                        </ul>
+                    <div class="flex-between">
+                        <button class="btn-action" style="background: var(--text-muted);" onclick="switchWizardTab(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button class="btn-action" onclick="switchMainView('dashboard')"><i class="fa-solid fa-chart-pie"></i> View Executive Dashboard</button>
                     </div>
                 </div>
 
-                <div class="flex-between">
-                    <div></div>
-                    <button class="btn-action" onclick="calculatePlan(); switchMainView('dashboard');"><i class="fa-solid fa-calculator"></i> Calculate & View Dashboard</button>
-                </div>
             </div>
 
             <!-- ==========================================
@@ -356,6 +403,7 @@
 
     <!-- APPLICATION LOGIC -->
     <script>
+        let isUnlocked = false;
         let lineChart = null;
         let donutChart = null;
         let chartGlobalData = { labels: [], data: [], maxVal: 0 };
@@ -372,13 +420,26 @@
             if(urlParams.has('bpw')) document.getElementById('batchesPerWeek').value = urlParams.get('bpw');
             if(urlParams.has('apps')) document.getElementById('totalApps').value = urlParams.get('apps');
             
+            // NEW: Check for Razorpay's specific payment ID parameter
+            if (urlParams.has('razorpay_payment_id') || urlParams.has('payment_id')) {
+                localStorage.setItem('planner_unlocked', 'true');
+                // Clean the URL so the payment ID doesn't stay in the address bar
+                window.history.replaceState({}, document.title, window.location.pathname);
+                alert("Payment successful! Unlocking your full dashboard and tools...");
+            }
+            
+            isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
             document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
+            
+            // Initial calculations
             handlePlatformChange();
+            calculatePlan();
 
             // If user arrived from the embed widget, instantly calculate & show dashboard
-            if(hasIncomingData) {
-                calculatePlan();
-                switchMainView('dashboard');
+            if(hasIncomingData && !isUnlocked) {
+                switchMainView('planner'); // Force them to the planner to see the paywall if not unlocked
+            } else if (hasIncomingData && isUnlocked) {
+                switchMainView('dashboard'); // Go straight to dashboard if already unlocked
             }
         });
 
@@ -386,6 +447,12 @@
         // SIDEBAR NAVIGATION LOGIC
         // -----------------------------------------------------
         function switchMainView(viewId) {
+            // Paywall Check for Protected Views
+            if (!isUnlocked && (viewId === 'dashboard' || viewId === 'timeline' || viewId === 'resources' || viewId === 'risks')) {
+                alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
+                return;
+            }
+
             // Hide all views
             document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
             // Remove active highlight from sidebar items
@@ -409,6 +476,22 @@
             if (viewId === 'resources') {
                 setTimeout(() => { renderCharts(); }, 50); 
             }
+        }
+
+        // -----------------------------------------------------
+        // PLANNER WIZARD NAVIGATION (Internal to Planner View)
+        // -----------------------------------------------------
+        function switchWizardTab(tabIndex) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabIndex).classList.add('active');
+            document.getElementById('nav-step-' + tabIndex).classList.add('active');
+        }
+
+        function calculateAndAdvance(tabIndex) {
+            calculatePlan();
+            switchWizardTab(tabIndex);
         }
 
         // -----------------------------------------------------
@@ -469,6 +552,7 @@
                 if (osType === 'mobile' || osType === 'mac') hypercareM = 1;
 
                 let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
+                let visiblePoint = Math.ceil(totalMonths * 0.25); // For Paywall preview
 
                 let startDate = document.getElementById('date-start').value;
                 if(startDate) {
@@ -541,7 +625,12 @@
                         let fteValue = getFTE(role[2], role[1], i);
                         monthlyTotals[i] += fteValue; 
                         rSum += fteValue;
-                        matrixHTML += `<td>${fteValue}</td>`;
+                        // Preview logic
+                        if (document.querySelector('.tab-content.active') && document.querySelector('.tab-content.active').id === 'tab-2') {
+                            matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${fteValue}</td>`;
+                        } else {
+                            matrixHTML += `<td>${fteValue}</td>`;
+                        }
                     }
                     donutGlobalData.data.push(rSum);
                     donutGlobalData.labels.push(role[0]);
@@ -560,12 +649,17 @@
 
                 matrixHTML += '<tr style="font-weight: bold; background: #f8fafc; color: var(--primary); border-top: 2px solid var(--border-color);"><td class="role-name">Total Combined FTE</td>';
                 for (let i = 1; i <= totalMonths; i++) {
-                    matrixHTML += `<td>${monthlyTotals[i]}</td>`;
+                    if (document.querySelector('.tab-content.active') && document.querySelector('.tab-content.active').id === 'tab-2') {
+                        matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${monthlyTotals[i]}</td>`;
+                    } else {
+                        matrixHTML += `<td>${monthlyTotals[i]}</td>`;
+                    }
                 }
                 matrixHTML += '</tr></table>';
 
                 // Output to Matrix Views
-                document.getElementById('view-matrix-container').innerHTML = matrixHTML;
+                document.getElementById('tab2-matrix-container').innerHTML = matrixHTML; // Preview tab
+                document.getElementById('view-matrix-container').innerHTML = matrixHTML; // Full Dashboard
 
                 // 4. Update Summary Statistics Globally
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
@@ -574,34 +668,40 @@
 
                 document.getElementById('snap-platform').innerText = platformName;
                 document.getElementById('snap-devices').innerText = devices.toLocaleString();
-                document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
-                document.getElementById('dash-duration').innerText = `${totalMonths} Months`;
-                document.getElementById('snap-peak').innerText = peakFTE;
-                document.getElementById('dash-peak').innerText = peakFTE;
-                document.getElementById('snap-personmonths').innerText = totalPersonMonths;
-                document.getElementById('dash-pm').innerText = totalPersonMonths;
-                document.getElementById('dash-waves').innerText = totalBatches;
-                document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                // 5. Generate Dynamic Gantt Charts
-                let ganttHTML = `<div class="gantt-header">`;
-                for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
-                ganttHTML += `</div>`;
-                
-                function drawBar(name, st, dur, col) {
-                    let L = ((st - 1) / totalMonths) * 100;
-                    let W = (dur / totalMonths) * 100;
-                    return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
+                if(isUnlocked) {
+                    document.getElementById('paywallSection').style.display = 'none';
+                    document.getElementById('tab-2-actions').style.display = 'flex';
+                    
+                    document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
+                    document.getElementById('dash-duration').innerText = `${totalMonths} Mo`;
+                    document.getElementById('snap-peak').innerText = peakFTE;
+                    document.getElementById('dash-peak').innerText = peakFTE;
+                    document.getElementById('snap-personmonths').innerText = totalPersonMonths;
+                    document.getElementById('dash-pm').innerText = totalPersonMonths;
+                    document.getElementById('dash-waves').innerText = totalBatches;
+                    document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
+
+                    // 5. Generate Dynamic Gantt Charts
+                    let ganttHTML = `<div class="gantt-header">`;
+                    for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
+                    ganttHTML += `</div>`;
+                    
+                    function drawBar(name, st, dur, col) {
+                        let L = ((st - 1) / totalMonths) * 100;
+                        let W = (dur / totalMonths) * 100;
+                        return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
+                    }
+                    ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
+                    ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
+                    ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
+                    ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
+                    ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
+                    
+                    // Output Gantt to Dashboard and Timeline views
+                    document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
+                    document.getElementById('time-gantt-container').innerHTML = ganttHTML;
                 }
-                ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
-                ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
-                ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
-                ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
-                ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
-                
-                // Output Gantt to Dashboard and Timeline views
-                document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
-                document.getElementById('time-gantt-container').innerHTML = ganttHTML;
             }
         }
 
