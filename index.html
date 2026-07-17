@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intune Migration Planner Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Include html2pdf.js for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
@@ -25,17 +24,7 @@
             --c-hyp: #ffe4e6;
         }
 
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-light);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-            color: var(--text-dark);
-        }
-
-        /* Sidebar Styling */
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
         .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .logo-area { padding: 20px; font-size: 24px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e293b;}
         .logo-icon { color: #4ade80; }
@@ -49,7 +38,6 @@
         .snap-label { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;}
         .snap-value { font-size: 16px; font-weight: 600; color: white; margin-top: 3px;}
 
-        /* Main Content Styling */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .header { padding: 20px 30px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .header h2 { margin: 0; font-size: 20px; }
@@ -57,7 +45,6 @@
         .header-actions .btn-primary { background: var(--primary); color: white; border: none; }
         .content-scroll { flex: 1; overflow-y: auto; padding: 30px; }
 
-        /* Multi-Step Navigation */
         .stepper { display: flex; justify-content: space-between; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px;}
         .step { font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px; transition: 0.2s; }
         .step:hover { color: var(--primary); }
@@ -66,7 +53,6 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Shared Card & Inputs */
         .card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .card-header { font-size: 16px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: var(--primary); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         .input-grid { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;}
@@ -78,11 +64,9 @@
         .btn-action:hover { background: var(--primary-hover); }
         .flex-between { display: flex; justify-content: space-between; align-items: center; margin-top: 20px;}
 
-        /* Grid Layouts for Planner Setup */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
         
-        /* Checklists & Small Tables */
         .check-list { list-style: none; padding: 0; margin: 0; font-size: 13px; line-height: 1.8; }
         .check-list li { display: flex; align-items: center; gap: 8px; }
         .check-list i { color: #10b981; }
@@ -95,18 +79,15 @@
         .dot-red { background: #ef4444; }
         .dot-yellow { background: #f59e0b; }
 
-        /* Dashboard Metrics */
         .dashboard-metrics { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;}
         .metric-card { flex: 1; min-width: 160px; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; align-items: flex-start; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .metric-icon { font-size: 28px; color: var(--primary); }
         .metric-data label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; font-weight: 600;}
         .metric-data .val { font-size: 24px; font-weight: bold; color: var(--text-dark); margin-bottom: 2px;}
 
-        /* Paywall */
         .paywall { text-align: center; background: #f8fafc; padding: 40px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-top: 20px; }
         .paywall h3 { margin-top: 0; color: var(--text-dark); }
         
-        /* Matrix specific */
         .matrix-container { overflow-x: auto; }
         .matrix-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
         .matrix-table th, .matrix-table td { border: 1px solid var(--border-color); padding: 10px; }
@@ -119,13 +100,11 @@
         .bg-mig { background-color: var(--c-mig); }
         .bg-hyp { background-color: var(--c-hyp); }
 
-        /* PDF Export Container (Hidden) */
         #pdf-export-container { display: none; background: white; padding: 40px; width: 800px; color: black; font-family: 'Helvetica', sans-serif;}
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="logo-area"><i class="fa-solid fa-server logo-icon"></i> LZebra</div>
         <div class="nav-menu">
@@ -144,7 +123,6 @@
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
     <div class="main-content">
         <div class="header">
             <h2>Intune Migration Planner</h2>
@@ -155,7 +133,6 @@
 
         <div class="content-scroll">
             
-            <!-- STEPPER NAVIGATION -->
             <div class="stepper">
                 <div class="step active" id="nav-step-1" onclick="switchTab(1)">① Platform & Inputs</div>
                 <div class="step" id="nav-step-2" onclick="switchTab(2)">② FTE Matrix</div>
@@ -223,7 +200,6 @@
             <!-- TAB 3: PLANNER SETUP -->
             <div id="tab-3" class="tab-content">
                 <div class="grid-2">
-                    <!-- Strategy & Timeline -->
                     <div>
                         <div class="card">
                             <div class="card-header"><i class="fa-solid fa-chess-knight"></i> 1. Migration Strategy</div>
@@ -242,7 +218,6 @@
                         <div class="card">
                             <div class="card-header"><i class="fa-solid fa-clock"></i> 2. Project Timeline</div>
                             <table class="data-table">
-                                <!-- Dates are populated automatically via JS -->
                                 <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()" style="border:none; outline:none; background:transparent;"></td></tr>
                                 <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="border:none; outline:none; background:transparent; color: var(--text-muted);"></td></tr>
                                 <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="border:none; outline:none; background:transparent; color: var(--text-muted);"></td></tr>
@@ -252,7 +227,6 @@
                         </div>
                     </div>
 
-                    <!-- Platform Configuration -->
                     <div class="card">
                         <div class="card-header"><i class="fa-solid fa-laptop-code"></i> 3. Platform Configuration</div>
                         
@@ -413,13 +387,12 @@
         </div>
     </div>
     
-    <!-- Hidden container used strictly for formatting the PDF download -->
     <div id="pdf-export-container"></div>
 
     <!-- APPLICATION LOGIC -->
     <script>
         let isUnlocked = false;
-        let globalProjectData = {}; // Store data for PDF generation
+        let globalProjectData = {};
 
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -431,8 +404,6 @@
             }
 
             isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
-            
-            // Set default Project Start Date to today
             document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
             
             handlePlatformChange();
@@ -486,7 +457,6 @@
             document.getElementById('assumptions-list').innerHTML = assumptions;
         }
 
-        // Date helper function
         function addMonths(dateStr, monthsToAdd) {
             let d = new Date(dateStr);
             d.setMonth(d.getMonth() + monthsToAdd);
@@ -515,7 +485,6 @@
                 let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
                 let visiblePoint = Math.ceil(totalMonths * 0.25); 
 
-                // --- DYNAMIC TIMELINE DATE CALCULATIONS ---
                 let startDate = document.getElementById('date-start').value;
                 if(startDate) {
                     let pilotDate = addMonths(startDate, assessmentM + foundationM);
@@ -527,36 +496,35 @@
                     document.getElementById('date-hyper').value = hyperDate;
                 }
                 
-                // --- DYNAMIC APP PLANNING MATH ---
                 let appsReady = Math.round(totalApps * 0.60);
                 let appsPack = Math.round(totalApps * 0.25);
                 let appsVend = Math.round(totalApps * 0.08);
-                let appsTest = totalApps - appsReady - appsPack - appsVend; // Make sure it totals 100%
+                let appsTest = totalApps - appsReady - appsPack - appsVend; 
 
                 document.getElementById('app-ready-count').innerText = appsReady.toLocaleString();
                 document.getElementById('app-pack-count').innerText = appsPack.toLocaleString();
                 document.getElementById('app-vendor-count').innerText = appsVend.toLocaleString();
                 document.getElementById('app-test-count').innerText = appsTest.toLocaleString();
 
-                // --- DYNAMIC MIGRATION WAVES MATH ---
+                // DYNAMIC MIGRATION WAVES LOGIC EXPANDED TO 10 WAVES
                 let waveTable = `<tr><th>Wave</th><th>Devices</th><th>Status</th></tr>`;
                 let remDevs = devices;
                 
-                // Pilot wave calculation (Max 500 or 5% of total devices)
                 let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
                 if(pilotSize > 0) {
                     waveTable += `<tr><td>Pilot</td><td>${pilotSize.toLocaleString()}</td><td>Planned</td></tr>`;
                     remDevs -= pilotSize;
                 }
                 
-                // Subsequent waves calculation
                 let waveNum = 1;
-                while(remDevs > 0 && waveNum <= 5) { // Cap at 5 rows to keep UI clean
-                    if(waveNum === 5 && remDevs > batchSize) {
+                while(remDevs > 0) { 
+                    if(waveNum === 11 && remDevs > 0) {
+                        // Reached wave 11 and there are still devices left. Group them.
                         let remWaves = Math.ceil(remDevs / batchSize);
                         waveTable += `<tr><td>Waves ${waveNum} to ${waveNum + remWaves - 1}</td><td>${remDevs.toLocaleString()}</td><td>Planned</td></tr>`;
-                        remDevs = 0; // End loop
+                        remDevs = 0; 
                     } else {
+                        // Print individual wave (1 through 10)
                         let bSize = Math.min(batchSize, remDevs);
                         waveTable += `<tr><td>Wave ${waveNum}</td><td>${bSize.toLocaleString()}</td><td>Planned</td></tr>`;
                         remDevs -= bSize;
@@ -565,7 +533,6 @@
                 }
                 document.getElementById('migration-waves-table').innerHTML = waveTable;
 
-                // --- FTE MATRIX GENERATION ---
                 function getFTE(peak, role, m) {
                     if (peak === 0) return 0;
                     let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
@@ -585,7 +552,6 @@
                     ['Hypercare / Support', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800))]
                 ];
 
-                // Build Matrix HTML
                 let matrixHTML = '<table class="matrix-table">';
                 matrixHTML += '<tr style="font-weight: 600; font-size: 12px;"><td style="border: none; background: white;"></td>';
                 if (assessmentM > 0) matrixHTML += `<td colspan="${assessmentM}" class="bg-assess">Assessment</td>`;
@@ -633,7 +599,6 @@
 
                 document.getElementById('matrixTableContainer').innerHTML = matrixHTML;
 
-                // Sync Global Data for display and PDF
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
                 let totalBatches = Math.ceil(devices / batchSize);
 
@@ -656,18 +621,15 @@
                     document.getElementById('snap-personmonths').innerText = totalPersonMonths;
                     document.getElementById('dash-pm').innerText = totalPersonMonths;
                     
-                    // Store for PDF Generator
                     globalProjectData = { matrixHTML, platformName, totalMonths, peakFTE, totalBatches, totalPersonMonths };
                 }
             }
         }
 
-        // --- PDF GENERATION LOGIC ---
         function generatePDF() {
             let btn = document.getElementById('btn-export');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
             
-            // Build the HTML structure for the PDF
             let pdfContent = `
                 <div style="margin-bottom: 30px; border-bottom: 2px solid #0284c7; padding-bottom: 10px;">
                     <h1 style="color: #0f172a; margin:0;">Intune Migration Executive Report</h1>
@@ -735,7 +697,7 @@
 
             let container = document.getElementById('pdf-export-container');
             container.innerHTML = pdfContent;
-            container.style.display = 'block'; // Make it temporarily visible for the parser
+            container.style.display = 'block';
 
             var opt = {
                 margin:       0.5,
@@ -745,10 +707,9 @@
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // Generate and save
             html2pdf().set(opt).from(container).save().then(() => {
-                container.style.display = 'none'; // Hide it again
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> Generate Executive Report'; // Reset button
+                container.style.display = 'none'; 
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Generate Executive Report'; 
             });
         }
     </script>
