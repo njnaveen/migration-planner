@@ -20,6 +20,10 @@
 
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
         
+        /* STRICT PAYWALL OVERRIDES */
+        body.is-unlocked #paywallSection { display: none !important; }
+        body.is-unlocked #tab-2-actions { display: flex !important; }
+
         /* SIDEBAR */
         .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;}
         .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121;}
@@ -43,7 +47,7 @@
         .header-actions .btn-primary { background: var(--primary); color: white; border: none; }
         .content-scroll { flex: 1; overflow-y: auto; padding: 25px; }
 
-        /* VIEW TOGGLING (Replaces Stepper Tabs) */
+        /* VIEW TOGGLING */
         .main-view { display: none; animation: fadeIn 0.3s; }
         .main-view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -213,7 +217,6 @@
                     <div id="paywallSection" class="paywall">
                         <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Dashboard</h3>
                         <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining 75% of your matrix, timeline, charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
-                        <!-- NEW BUTTON ID INSERTED BELOW -->
                         <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TEht31x9wlMsfj" async> </script> </form>
                     </div>
 
@@ -430,13 +433,21 @@
             }
             
             isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
+            
+            // STRICT CSS ENFORCEMENT: Kill the paywall entirely if unlocked
+            if (isUnlocked) {
+                document.body.classList.add('is-unlocked');
+                let pw = document.getElementById('paywallSection');
+                if (pw) { pw.innerHTML = ''; } // Destroy the Razorpay script
+            }
+
             document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
             
             // Initial calculations
             handlePlatformChange();
             calculatePlan();
 
-            // If user arrived from the embed widget, instantly calculate & show dashboard
+            // If user arrived from the embed widget, handle view routing
             if(hasIncomingData && !isUnlocked) {
                 switchMainView('planner'); // Force them to the planner to see the paywall if not unlocked
             } else if (hasIncomingData && isUnlocked) {
@@ -669,34 +680,41 @@
 
                 document.getElementById('snap-platform').innerText = platformName;
                 document.getElementById('snap-devices').innerText = devices.toLocaleString();
-                document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
-                document.getElementById('dash-duration').innerText = `${totalMonths} Months`;
-                document.getElementById('snap-peak').innerText = peakFTE;
-                document.getElementById('dash-peak').innerText = peakFTE;
-                document.getElementById('snap-personmonths').innerText = totalPersonMonths;
-                document.getElementById('dash-pm').innerText = totalPersonMonths;
-                document.getElementById('dash-waves').innerText = totalBatches;
-                document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                // 5. Generate Dynamic Gantt Charts
-                let ganttHTML = `<div class="gantt-header">`;
-                for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
-                ganttHTML += `</div>`;
-                
-                function drawBar(name, st, dur, col) {
-                    let L = ((st - 1) / totalMonths) * 100;
-                    let W = (dur / totalMonths) * 100;
-                    return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
+                if(isUnlocked) {
+                    // Fail-safe to hide the section just in case the CSS is missed
+                    document.getElementById('paywallSection').style.display = 'none';
+                    document.getElementById('tab-2-actions').style.display = 'flex';
+                    
+                    document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
+                    document.getElementById('dash-duration').innerText = `${totalMonths} Mo`;
+                    document.getElementById('snap-peak').innerText = peakFTE;
+                    document.getElementById('dash-peak').innerText = peakFTE;
+                    document.getElementById('snap-personmonths').innerText = totalPersonMonths;
+                    document.getElementById('dash-pm').innerText = totalPersonMonths;
+                    document.getElementById('dash-waves').innerText = totalBatches;
+                    document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
+
+                    // 5. Generate Dynamic Gantt Charts
+                    let ganttHTML = `<div class="gantt-header">`;
+                    for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
+                    ganttHTML += `</div>`;
+                    
+                    function drawBar(name, st, dur, col) {
+                        let L = ((st - 1) / totalMonths) * 100;
+                        let W = (dur / totalMonths) * 100;
+                        return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
+                    }
+                    ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
+                    ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
+                    ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
+                    ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
+                    ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
+                    
+                    // Output Gantt to Dashboard and Timeline views
+                    document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
+                    document.getElementById('time-gantt-container').innerHTML = ganttHTML;
                 }
-                ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
-                ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
-                ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
-                ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
-                ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
-                
-                // Output Gantt to Dashboard and Timeline views
-                document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
-                document.getElementById('time-gantt-container').innerHTML = ganttHTML;
             }
         }
 
