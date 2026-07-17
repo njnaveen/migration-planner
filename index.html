@@ -1348,7 +1348,8 @@
 
                 wrap.id = "pdf-temp-container";
 
-                wrap.style.width = '1700px'; // Wide enough for 6 columns perfectly
+                wrap.style.width = '100%';
+		wrap.style.maxWidth = '1600px'; // Wide enough for 6 columns perfectly
 
                 wrap.style.backgroundColor = '#ffffff';
 
@@ -1470,15 +1471,17 @@
 
                 var opt = {
 
-                    margin:       [8,8,8,8],
+                    margin:       [5,5,5,5],
 
                     filename:     'Intune_Migration_Dashboard.pdf',
 
                     image:        { type: 'jpeg', quality: 1.0 },
 
-                    html2canvas:  { scale: 3, useCORS: true }, 
+                    html2canvas:  { scale: 3, useCORS: true, 					windowWidth: 1700,
+    				scrollX: 0,
+    				scrollY: 0	}, 
 
-                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+                    jsPDF:        { unit: 'in', format: 'a3', orientation: 'landscape' }
 
                 };
 
