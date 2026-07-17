@@ -6,7 +6,7 @@
     <title>Intune Migration Planner Dashboard</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -19,7 +19,7 @@
             --c-mig: #c084fc; --c-hyp: #fca5a5;
         }
 
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); position: relative;}
         
         .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;}
         .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121;}
@@ -116,6 +116,7 @@
 </head>
 <body>
 
+    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="logo-area">
             <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
@@ -139,6 +140,7 @@
         </div>
     </div>
 
+    <!-- MAIN CONTENT -->
     <div class="main-content">
         <div class="header">
             <h2>Intune Migration Planner</h2>
@@ -378,10 +380,10 @@
             <!-- TAB 5: GENERATE REPORT -->
             <div id="tab-5" class="tab-content">
                 <div class="card" style="max-width: 500px; margin: 0 auto;">
-                    <div class="card-header"><i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Generate Excel Data Report</div>
-                    <p style="color: var(--text-muted); font-size: 13px;">Export the complete raw data and dashboard summary into a multi-tab Microsoft Excel file so you can easily modify and integrate the plan into your own costing trackers.</p>
-                    <button class="btn-action" id="btn-export" style="width: 100%; justify-content: center; margin-top: 15px; background-color: #10b981;" onclick="generateExcel()">
-                        <i class="fa-solid fa-download"></i> Download Excel Workbook
+                    <div class="card-header"><i class="fa-solid fa-file-pdf"></i> Generate Executive PDF</div>
+                    <p style="color: var(--text-muted); font-size: 13px;">Export the complete Executive Dashboard into a high-quality, landscape PDF presentation document.</p>
+                    <button class="btn-action" id="btn-export" style="width: 100%; justify-content: center; margin-top: 15px;" onclick="generatePDF()">
+                        <i class="fa-solid fa-download"></i> Download PDF Dashboard
                     </button>
                 </div>
             </div>
@@ -397,14 +399,6 @@
         
         let chartGlobalData = { labels: [], data: [], maxVal: 0 };
         let donutGlobalData = { labels: [], data: [], colors: [] };
-        
-        // Window object to hold clean raw data for the Excel export
-        window.excelData = {
-            dashboard: [], // NEW EXCEL DASHBOARD TAB
-            summary: [],
-            matrix: [],
-            waves: []
-        };
 
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -535,29 +529,20 @@
                     document.getElementById('date-hyper').value = hyperDate;
                 }
                 
-                // Initialize Excel Data
-                window.excelData.waves = [['Wave Number', 'Device Count', 'Status']];
-
                 let waveTable = `<tr><th>Wave</th><th>Devices</th><th>Status</th></tr>`;
                 let remDevs = devices;
                 let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
-                if(pilotSize > 0) { 
-                    waveTable += `<tr><td>Pilot</td><td>${pilotSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Plnd</td></tr>`; 
-                    window.excelData.waves.push(['Pilot', pilotSize, 'Planned']);
-                    remDevs -= pilotSize; 
-                }
+                if(pilotSize > 0) { waveTable += `<tr><td>Pilot</td><td>${pilotSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Plnd</td></tr>`; remDevs -= pilotSize; }
                 
                 let waveNum = 1;
                 while(remDevs > 0) { 
                     if(waveNum === 6 && remDevs > 0) {
                         let remWaves = Math.ceil(remDevs / batchSize);
                         waveTable += `<tr><td>Waves ${waveNum}-${waveNum + remWaves - 1}</td><td>${remDevs.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Plnd</td></tr>`;
-                        window.excelData.waves.push([`Waves ${waveNum} to ${waveNum + remWaves - 1}`, remDevs, 'Planned']);
                         remDevs = 0; 
                     } else {
                         let bSize = Math.min(batchSize, remDevs);
                         waveTable += `<tr><td>Wave ${waveNum}</td><td>${bSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Plnd</td></tr>`;
-                        window.excelData.waves.push([`Wave ${waveNum}`, bSize, 'Planned']);
                         remDevs -= bSize;
                         waveNum++;
                     }
@@ -583,11 +568,6 @@
                     ['Hypercare', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800)), '#64748b']
                 ];
 
-                // Excel Matrix Header
-                let excelMatrixHeader = ['Role'];
-                for (let i = 1; i <= totalMonths; i++) { excelMatrixHeader.push('Month ' + i); }
-                window.excelData.matrix = [excelMatrixHeader];
-
                 let matrixHTML = '<table class="matrix-table">';
                 matrixHTML += `<tr><td style="border: none; background: white;"></td><td colspan="${assessmentM}" class="bg-assess">Assess</td><td colspan="${foundationM}" class="bg-found">Found.</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hyper</td></tr>`;
                 matrixHTML += '<tr style="background: #f8fafc;"><td class="role-name">Role</td>';
@@ -602,24 +582,13 @@
                 roles.forEach(role => {
                     if(role[1] === 'App' && osType === 'mobile') return;
                     matrixHTML += `<tr><td class="role-name"><i class="fa-solid fa-user" style="color:${role[3]}; margin-right:5px;"></i>${role[0]}</td>`;
-                    
-                    let excelRoleRow = [role[0]];
                     let rSum = 0;
-                    
                     for (let i = 1; i <= totalMonths; i++) {
                         let fteValue = getFTE(role[2], role[1], i);
                         monthlyTotals[i] += fteValue; 
                         rSum += fteValue;
-                        
-                        if(i > visiblePoint && !isUnlocked) {
-                            matrixHTML += '<td class="locked-cell">🔒</td>';
-                            excelRoleRow.push("Locked (Requires Payment)");
-                        } else {
-                            matrixHTML += `<td>${fteValue}</td>`;
-                            excelRoleRow.push(fteValue);
-                        }
+                        matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${fteValue}</td>`;
                     }
-                    window.excelData.matrix.push(excelRoleRow);
                     donutGlobalData.data.push(rSum);
                     donutGlobalData.labels.push(role[0]);
                     donutGlobalData.colors.push(role[3]);
@@ -627,8 +596,6 @@
                 });
 
                 chartGlobalData = { labels: [], data: [], maxVal: 0 };
-                let excelTotalRow = ['Total FTE'];
-
                 for(let m = 1; m <= totalMonths; m++) {
                     totalPersonMonths += monthlyTotals[m];
                     if(monthlyTotals[m] > peakFTE) peakFTE = monthlyTotals[m];
@@ -639,15 +606,8 @@
 
                 matrixHTML += '<tr style="font-weight: bold; background: #f8fafc; color: var(--primary);"><td class="role-name">Total FTE</td>';
                 for (let i = 1; i <= totalMonths; i++) {
-                    if(i > visiblePoint && !isUnlocked) {
-                        matrixHTML += '<td class="locked-cell">🔒</td>';
-                        excelTotalRow.push("Locked");
-                    } else {
-                        matrixHTML += `<td>${monthlyTotals[i]}</td>`;
-                        excelTotalRow.push(monthlyTotals[i]);
-                    }
+                    matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${monthlyTotals[i]}</td>`;
                 }
-                window.excelData.matrix.push(excelTotalRow);
                 matrixHTML += '</tr></table>';
 
                 document.getElementById('tab2-matrix-container').innerHTML = matrixHTML;
@@ -673,40 +633,6 @@
                     document.getElementById('dash-waves').innerText = totalBatches;
                     document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                    // --- EXCEL DASHBOARD LOGIC (ASCII Timeline & Text Grid) ---
-                    function buildAsciiBar(startM, dur, total) {
-                        let bar = "";
-                        for(let i=1; i<=total; i++) {
-                            if(i >= startM && i < startM + dur) bar += "████";
-                            else bar += "----";
-                        }
-                        return bar;
-                    }
-
-                    window.excelData.dashboard = [
-                        ["INTUNE MIGRATION EXECUTIVE DASHBOARD"],
-                        [],
-                        ["PROJECT SUMMARY", "", "", "RESOURCE METRICS"],
-                        ["Target Platform:", platformName, "", "Peak FTE Staffing:", peakFTE],
-                        ["Total Devices:", devices, "", "Total Person Months:", totalPersonMonths],
-                        ["Total Batches:", totalBatches, "", "Estimated Go-Live:", "Month " + goLiveMonth],
-                        ["Project Duration:", totalMonths + " Months", "", "Overall Risk:", "Medium"],
-                        [],
-                        ["MIGRATION TIMELINE"],
-                        ["Phase", "Timeline (" + totalMonths + " Months)", "Duration"],
-                        ["Assessment", buildAsciiBar(1, assessmentM, totalMonths), assessmentM + " Mo"],
-                        ["Foundation", buildAsciiBar(1+assessmentM, foundationM, totalMonths), foundationM + " Mo"],
-                        ["Pilot", buildAsciiBar(1+assessmentM+foundationM, pilotM, totalMonths), pilotM + " Mo"],
-                        ["Migration Waves", buildAsciiBar(1+assessmentM+foundationM+pilotM, migrationM, totalMonths), migrationM + " Mo"],
-                        ["Hypercare", buildAsciiBar(totalMonths-hypercareM+1, hypercareM, totalMonths), hypercareM + " Mo"],
-                        [],
-                        ["TOP RISKS & DEPENDENCIES", "", "", "KEY ASSUMPTIONS"],
-                        ["- [Risk] Application compatibility", "", "", "- Deployment: ~600 devices/week per FTE"],
-                        ["- [Risk] GPO to Intune complexity", "", "", "- App packaging: ~100 apps/week per FTE"],
-                        ["- [Dependency] Intune Tenant Setup", "", "", "- Hypercare duration: " + hypercareM + " month(s)"],
-                        ["- [Dependency] Azure AD Ready", "", "", "- Resource availability is full-time"]
-                    ];
-
                     let ganttHTML = `<div class="gantt-header">`;
                     for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
                     ganttHTML += `</div>`;
@@ -726,41 +652,101 @@
             }
         }
 
-        // --- EXCEL EXPORT SCRIPT ---
-        function generateExcel() {
+        // --- BULLETPROOF PDF EXPORT (LANDSCAPE) ---
+        function generatePDF() {
             let btn = document.getElementById('btn-export');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating Excel...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
             
             try {
-                let wb = XLSX.utils.book_new();
-
-                // Create the Dashboard Sheet (Sheet 1)
-                let wsDash = XLSX.utils.aoa_to_sheet(window.excelData.dashboard);
-                wsDash['!cols'] = [{ wch: 25 }, { wch: 60 }, { wch: 10 }, { wch: 25 }, { wch: 40 }]; 
-                XLSX.utils.book_append_sheet(wb, wsDash, "Executive Dashboard");
-
-                // Create Matrix Sheet (Sheet 2)
-                let wsMatrix = XLSX.utils.aoa_to_sheet(window.excelData.matrix);
-                let matrixCols = [{ wch: 20 }]; 
-                for(let i=1; i<window.excelData.matrix[0].length; i++) matrixCols.push({ wch: 10 });
-                wsMatrix['!cols'] = matrixCols;
-                XLSX.utils.book_append_sheet(wb, wsMatrix, "FTE Resource Matrix");
-
-                // Create Waves Sheet (Sheet 3)
-                let wsWaves = XLSX.utils.aoa_to_sheet(window.excelData.waves);
-                wsWaves['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }];
-                XLSX.utils.book_append_sheet(wb, wsWaves, "Migration Waves");
-
-                XLSX.writeFile(wb, "Intune_Migration_Plan.xlsx");
+                let originalDashboard = document.getElementById('printable-dashboard');
                 
+                // Mount the PDF generator container extremely high vertically so it does not affect view
+                let wrap = document.createElement('div');
+                wrap.id = "pdf-temp-container";
+                wrap.style.position = 'absolute';
+                wrap.style.top = '-10000px'; 
+                wrap.style.left = '0';
+                wrap.style.width = '1120px'; // Strict width for perfect landscape letter ratio
+                wrap.style.backgroundColor = '#ffffff';
+                wrap.style.padding = '20px';
+                wrap.style.boxSizing = 'border-box';
+
+                let printStyles = `
+                    <style>
+                        #pdf-temp-container * { box-sizing: border-box; }
+                        #pdf-temp-container .dash-panel { padding: 10px !important; margin-bottom: 0 !important; }
+                        #pdf-temp-container .dash-row-2, #pdf-temp-container .dash-row-3, #pdf-temp-container .dash-row-4 { gap: 10px !important; margin-bottom: 10px !important; }
+                        #pdf-temp-container .summary-grid { gap: 8px !important; margin-bottom: 10px !important; }
+                        #pdf-temp-container .sum-card { padding: 8px !important; }
+                        #pdf-temp-container .dash-panel-title { margin-bottom: 6px !important; font-size: 13px !important; padding-bottom: 4px !important; }
+                        #pdf-temp-container h3 { margin-bottom: 8px !important; font-size: 15px !important; }
+                        #pdf-temp-container .chart-wrapper { height: 130px !important; }
+                        #pdf-temp-container .data-table th, #pdf-temp-container .data-table td { padding: 4px !important; font-size: 10px !important; }
+                        #pdf-temp-container .matrix-table th, #pdf-temp-container .matrix-table td { padding: 3px !important; font-size: 10px !important; }
+                        #pdf-temp-container .check-list { font-size: 11px !important; line-height: 1.4 !important; }
+                        #pdf-temp-container .gantt-track { height: 12px !important; }
+                        #pdf-temp-container .gantt-header { padding-left: 80px !important; margin-bottom: 5px !important; }
+                        #pdf-temp-container .gantt-label { width: 80px !important; font-size: 10px !important; }
+                        #pdf-temp-container .gantt-month { font-size: 10px !important; }
+                    </style>
+                `;
+
+                let headerHTML = `
+                    <div style="border-bottom: 2px solid #0284c7; padding-bottom: 10px; margin-bottom:15px; display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div>
+                            <h1 style="color: #0f172a; margin:0; font-size:24px;">Intune Migration Executive Report</h1>
+                            <p style="color: #64748b; margin: 5px 0 0 0; font-size:12px;">Generated by LZebra Planner</p>
+                        </div>
+                        <div>
+                            <img src="./logo.png" style="max-height: 38px; max-width: 180px; object-fit: contain;">
+                        </div>
+                    </div>
+                `;
+
+                let clone = originalDashboard.cloneNode(true);
+                wrap.innerHTML = printStyles + headerHTML;
+                wrap.appendChild(clone);
+                document.body.appendChild(wrap);
+
+                // Convert canvases to images to ensure they render in html2canvas
+                let origCanvases = Array.from(originalDashboard.getElementsByTagName('canvas'));
+                let cloneCanvases = Array.from(wrap.getElementsByTagName('canvas'));
+                
+                for (let i = 0; i < origCanvases.length; i++) {
+                    let img = new Image();
+                    img.src = origCanvases[i].toDataURL('image/png');
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    if(cloneCanvases[i]) {
+                        cloneCanvases[i].parentNode.replaceChild(img, cloneCanvases[i]);
+                    }
+                }
+
+                // Explicit landscape orientation and matching window width to prevent clipping
+                var opt = {
+                    margin:       0.2,
+                    filename:     'Intune_Migration_Dashboard.pdf',
+                    image:        { type: 'jpeg', quality: 1.0 },
+                    html2canvas:  { scale: 2, useCORS: true, windowWidth: 1120 }, 
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+                };
+
                 setTimeout(() => {
-                    btn.innerHTML = '<i class="fa-solid fa-download"></i> Download Excel Workbook'; 
-                }, 1000);
+                    html2pdf().set(opt).from(wrap).save().then(() => {
+                        if(document.body.contains(wrap)) document.body.removeChild(wrap); 
+                        btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
+                    }).catch(err => {
+                        console.error(err);
+                        if(document.body.contains(wrap)) document.body.removeChild(wrap);
+                        btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
+                        alert("Error generating PDF. Check console.");
+                    });
+                }, 150);
 
             } catch(error) {
-                console.error("Excel Generation Error:", error);
-                alert("An error occurred while generating the Excel file.");
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> Download Excel Workbook'; 
+                console.error(error);
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
+                alert("Error preparing PDF. Check console.");
             }
         }
     </script>
