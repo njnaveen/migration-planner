@@ -19,9 +19,9 @@
             --c-mig: #c084fc; --c-hyp: #fca5a5;
         }
 
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); position: relative;}
         
-        .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;}
         .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121;}
         .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
         
@@ -35,7 +35,7 @@
         .snap-label { color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
         .snap-value { font-size: 14px; font-weight: 600; color: white; margin-top: 2px;}
 
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background-color: var(--bg-light); z-index: 10;}
         .header { padding: 12px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .header h2 { margin: 0; font-size: 16px; }
         .header-actions button { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color); background: white; cursor: pointer; font-weight: 500; margin-left: 10px; font-size: 12px;}
@@ -660,28 +660,17 @@
             try {
                 let originalDashboard = document.getElementById('printable-dashboard');
                 
-                // CREATE A FIXED MASTER WRAPPER THAT WON'T BE INFLUENCED BY USER'S WINDOW SIZE
-                let masterWrap = document.createElement('div');
-                masterWrap.id = 'pdf-master-hide';
-                masterWrap.style.position = 'fixed';
-                masterWrap.style.top = '0';
-                masterWrap.style.left = '0';
-                masterWrap.style.width = '100vw';
-                masterWrap.style.height = '100vh';
-                masterWrap.style.overflow = 'hidden';
-                masterWrap.style.zIndex = '-9999';
-                masterWrap.style.opacity = '0'; 
-
-                // EXACT TARGET CONTAINER
+                // Mount a container fixed directly at 0,0 behind everything
                 let wrap = document.createElement('div');
                 wrap.id = "pdf-temp-container";
-                wrap.style.width = '1120px'; 
+                wrap.style.position = 'fixed';
+                wrap.style.top = '0';
+                wrap.style.left = '0';
+                wrap.style.width = '1120px'; // Exact width needed to fit all elements
                 wrap.style.backgroundColor = '#ffffff';
                 wrap.style.padding = '25px';
                 wrap.style.boxSizing = 'border-box';
-                wrap.style.position = 'absolute';
-                wrap.style.top = '0';
-                wrap.style.left = '0';
+                wrap.style.zIndex = '-9999'; // Hide behind main screen
 
                 let printStyles = `
                     <style>
@@ -718,8 +707,7 @@
                 let clone = originalDashboard.cloneNode(true);
                 wrap.innerHTML = printStyles + headerHTML;
                 wrap.appendChild(clone);
-                masterWrap.appendChild(wrap);
-                document.body.appendChild(masterWrap);
+                document.body.appendChild(wrap);
 
                 let origCanvases = Array.from(originalDashboard.getElementsByTagName('canvas'));
                 let cloneCanvases = Array.from(wrap.getElementsByTagName('canvas'));
@@ -734,28 +722,28 @@
                     }
                 }
 
-                // THE FIX: ADDING windowWidth 1200 forces html2canvas to capture the full width
+                // FORCE the PDF engine's virtual window to be 1200px wide, and explicitly reset scroll axes
                 var opt = {
                     margin:       0.25,
                     filename:     'Intune_Migration_Dashboard.pdf',
                     image:        { type: 'jpeg', quality: 1.0 },
                     html2canvas:  { 
                         scale: 2, 
-                        useCORS: true,
+                        useCORS: true, 
                         windowWidth: 1200, 
-                        scrollY: 0,
-                        scrollX: 0
+                        scrollX: 0, 
+                        scrollY: 0 
                     }, 
                     jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
                 };
 
                 setTimeout(() => {
                     html2pdf().set(opt).from(wrap).save().then(() => {
-                        if (document.body.contains(masterWrap)) document.body.removeChild(masterWrap); 
+                        document.body.removeChild(wrap); 
                         btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
                     }).catch(err => {
                         console.error(err);
-                        if (document.body.contains(masterWrap)) document.body.removeChild(masterWrap);
+                        if(document.body.contains(wrap)) document.body.removeChild(wrap);
                         btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
                         alert("Error generating PDF. Check console.");
                     });
