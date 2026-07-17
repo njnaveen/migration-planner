@@ -660,25 +660,29 @@
             try {
                 let originalDashboard = document.getElementById('printable-dashboard');
                 
-                // 1. Create a Master Wrapper that prevents scroll/clipping bugs completely
+                // CREATE A FIXED MASTER WRAPPER THAT WON'T BE INFLUENCED BY USER'S WINDOW SIZE
                 let masterWrap = document.createElement('div');
                 masterWrap.id = 'pdf-master-hide';
-                masterWrap.style.position = 'absolute';
+                masterWrap.style.position = 'fixed';
                 masterWrap.style.top = '0';
                 masterWrap.style.left = '0';
-                masterWrap.style.width = '0';
-                masterWrap.style.height = '0';
+                masterWrap.style.width = '100vw';
+                masterWrap.style.height = '100vh';
                 masterWrap.style.overflow = 'hidden';
+                masterWrap.style.zIndex = '-9999';
+                masterWrap.style.opacity = '0'; 
 
-                // 2. Create the actual dashboard container for the PDF
+                // EXACT TARGET CONTAINER
                 let wrap = document.createElement('div');
                 wrap.id = "pdf-temp-container";
-                wrap.style.width = '1120px'; // Wide enough for 6 columns perfectly
+                wrap.style.width = '1120px'; 
                 wrap.style.backgroundColor = '#ffffff';
                 wrap.style.padding = '25px';
                 wrap.style.boxSizing = 'border-box';
+                wrap.style.position = 'absolute';
+                wrap.style.top = '0';
+                wrap.style.left = '0';
 
-                // Compress formatting slightly to ensure it fits nicely on a Landscape page
                 let printStyles = `
                     <style>
                         #pdf-temp-container * { box-sizing: border-box; }
@@ -711,14 +715,12 @@
                     </div>
                 `;
 
-                // 3. Assemble and inject into DOM
                 let clone = originalDashboard.cloneNode(true);
                 wrap.innerHTML = printStyles + headerHTML;
                 wrap.appendChild(clone);
                 masterWrap.appendChild(wrap);
                 document.body.appendChild(masterWrap);
 
-                // 4. Transform canvases into static images safely
                 let origCanvases = Array.from(originalDashboard.getElementsByTagName('canvas'));
                 let cloneCanvases = Array.from(wrap.getElementsByTagName('canvas'));
                 
@@ -732,31 +734,37 @@
                     }
                 }
 
-                // 5. Generate the PDF
+                // THE FIX: ADDING windowWidth 1200 forces html2canvas to capture the full width
                 var opt = {
                     margin:       0.25,
                     filename:     'Intune_Migration_Dashboard.pdf',
                     image:        { type: 'jpeg', quality: 1.0 },
-                    html2canvas:  { scale: 2, useCORS: true }, 
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true,
+                        windowWidth: 1200, 
+                        scrollY: 0,
+                        scrollX: 0
+                    }, 
                     jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
                 };
 
                 setTimeout(() => {
                     html2pdf().set(opt).from(wrap).save().then(() => {
-                        document.body.removeChild(masterWrap); 
+                        if (document.body.contains(masterWrap)) document.body.removeChild(masterWrap); 
                         btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
                     }).catch(err => {
                         console.error(err);
-                        if(document.body.contains(masterWrap)) document.body.removeChild(masterWrap);
+                        if (document.body.contains(masterWrap)) document.body.removeChild(masterWrap);
                         btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
-                        alert("Error generating PDF.");
+                        alert("Error generating PDF. Check console.");
                     });
-                }, 100);
+                }, 150);
 
             } catch(error) {
                 console.error(error);
                 btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
-                alert("Error preparing PDF.");
+                alert("Error preparing PDF. Check console.");
             }
         }
     </script>
