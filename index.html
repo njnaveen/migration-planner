@@ -213,7 +213,8 @@
                     <div id="paywallSection" class="paywall">
                         <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Dashboard</h3>
                         <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining 75% of your matrix, timeline, charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
-                        <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
+                        <!-- NEW BUTTON ID INSERTED BELOW -->
+                        <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TEht31x9wlMsfj" async> </script> </form>
                     </div>
 
                     <div class="flex-between" id="tab-2-actions" style="display: none;">
@@ -261,6 +262,7 @@
                                 <li><input type="checkbox" checked> Apple Business Manager (ABM)</li>
                                 <li><input type="checkbox" checked> ADE / VPP Configured</li>
                                 <li><input type="checkbox" checked> Android Enterprise</li>
+                                <!-- Explicit config based on requirements -->
                                 <li><input type="checkbox" checked> Shared Devices (No User Affinity)</li>
                             </ul>
                             <ul class="check-list" id="config-mac" style="display:none;">
@@ -403,7 +405,6 @@
 
     <!-- APPLICATION LOGIC -->
     <script>
-        let isUnlocked = false;
         let lineChart = null;
         let donutChart = null;
         let chartGlobalData = { labels: [], data: [], maxVal: 0 };
@@ -420,7 +421,7 @@
             if(urlParams.has('bpw')) document.getElementById('batchesPerWeek').value = urlParams.get('bpw');
             if(urlParams.has('apps')) document.getElementById('totalApps').value = urlParams.get('apps');
             
-            // NEW: Check for Razorpay's specific payment ID parameter
+            // Handle Razorpay's specific payment ID parameter
             if (urlParams.has('razorpay_payment_id') || urlParams.has('payment_id')) {
                 localStorage.setItem('planner_unlocked', 'true');
                 // Clean the URL so the payment ID doesn't stay in the address bar
@@ -668,40 +669,34 @@
 
                 document.getElementById('snap-platform').innerText = platformName;
                 document.getElementById('snap-devices').innerText = devices.toLocaleString();
+                document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
+                document.getElementById('dash-duration').innerText = `${totalMonths} Months`;
+                document.getElementById('snap-peak').innerText = peakFTE;
+                document.getElementById('dash-peak').innerText = peakFTE;
+                document.getElementById('snap-personmonths').innerText = totalPersonMonths;
+                document.getElementById('dash-pm').innerText = totalPersonMonths;
+                document.getElementById('dash-waves').innerText = totalBatches;
+                document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                if(isUnlocked) {
-                    document.getElementById('paywallSection').style.display = 'none';
-                    document.getElementById('tab-2-actions').style.display = 'flex';
-                    
-                    document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
-                    document.getElementById('dash-duration').innerText = `${totalMonths} Mo`;
-                    document.getElementById('snap-peak').innerText = peakFTE;
-                    document.getElementById('dash-peak').innerText = peakFTE;
-                    document.getElementById('snap-personmonths').innerText = totalPersonMonths;
-                    document.getElementById('dash-pm').innerText = totalPersonMonths;
-                    document.getElementById('dash-waves').innerText = totalBatches;
-                    document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
-
-                    // 5. Generate Dynamic Gantt Charts
-                    let ganttHTML = `<div class="gantt-header">`;
-                    for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
-                    ganttHTML += `</div>`;
-                    
-                    function drawBar(name, st, dur, col) {
-                        let L = ((st - 1) / totalMonths) * 100;
-                        let W = (dur / totalMonths) * 100;
-                        return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
-                    }
-                    ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
-                    ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
-                    ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
-                    ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
-                    ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
-                    
-                    // Output Gantt to Dashboard and Timeline views
-                    document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
-                    document.getElementById('time-gantt-container').innerHTML = ganttHTML;
+                // 5. Generate Dynamic Gantt Charts
+                let ganttHTML = `<div class="gantt-header">`;
+                for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
+                ganttHTML += `</div>`;
+                
+                function drawBar(name, st, dur, col) {
+                    let L = ((st - 1) / totalMonths) * 100;
+                    let W = (dur / totalMonths) * 100;
+                    return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
                 }
+                ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
+                ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
+                ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
+                ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
+                ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
+                
+                // Output Gantt to Dashboard and Timeline views
+                document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
+                document.getElementById('time-gantt-container').innerHTML = ganttHTML;
             }
         }
 
