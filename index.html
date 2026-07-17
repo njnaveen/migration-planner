@@ -380,10 +380,10 @@
             <!-- TAB 5: GENERATE REPORT -->
             <div id="tab-5" class="tab-content">
                 <div class="card" style="max-width: 500px; margin: 0 auto;">
-                    <div class="card-header"><i class="fa-solid fa-file-pdf"></i> Generate Executive PDF</div>
-                    <p style="color: var(--text-muted); font-size: 13px;">Export the complete Executive Dashboard into a high-quality, landscape PDF presentation document.</p>
+                    <div class="card-header"><i class="fa-solid fa-file-pdf"></i> Generate Executive PDF Report</div>
+                    <p style="color: var(--text-muted); font-size: 13px;">Export the complete Executive Dashboard into a high-quality, perfectly formatted landscape PDF document.</p>
                     <button class="btn-action" id="btn-export" style="width: 100%; justify-content: center; margin-top: 15px;" onclick="generatePDF()">
-                        <i class="fa-solid fa-download"></i> Download PDF Dashboard
+                        <i class="fa-solid fa-download"></i> Download Landscape PDF Dashboard
                     </button>
                 </div>
             </div>
@@ -652,24 +652,24 @@
             }
         }
 
-        // --- BULLETPROOF PDF EXPORT (LOADING SCREEN METHOD) ---
+        // --- BULLETPROOF LANDSCAPE PDF EXPORT USING OVERLAY METHOD ---
         function generatePDF() {
             let btn = document.getElementById('btn-export');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
             
             try {
-                // Scroll to top immediately to prevent html2canvas coordinate shifting bugs
+                // Scroll to top immediately to prevent html2canvas coordinate shifting bugs causing cut-offs
                 window.scrollTo(0, 0);
 
                 let originalDashboard = document.getElementById('printable-dashboard');
                 
                 // 1. Create a Loading Overlay that covers the whole screen to hide the rendering process
                 let overlay = document.createElement('div');
-                overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f8fafc; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;";
+                overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(248, 250, 252, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;";
                 overlay.innerHTML = `
                     <i class="fa-solid fa-file-pdf fa-bounce" style="font-size: 50px; color: #0284c7; margin-bottom: 20px;"></i>
-                    <h2 style="font-family: sans-serif; color: #1e293b; margin: 0;">Generating High-Quality Report...</h2>
-                    <p style="font-family: sans-serif; color: #64748b; margin-top: 10px;">Please do not close this window. Formatting in progress.</p>
+                    <h2 style="font-family: sans-serif; color: #1e293b; margin: 0;">Generating Landscape Report...</h2>
+                    <p style="font-family: sans-serif; color: #64748b; margin-top: 10px;">Please do not close or scroll this window. Formatting in progress.</p>
                 `;
                 document.body.appendChild(overlay);
 
@@ -677,7 +677,7 @@
                 let renderZone = document.createElement('div');
                 renderZone.style.cssText = "position: absolute; top: 0; left: 0; width: 1120px; background: white; padding: 25px; z-index: 9998; box-sizing: border-box;";
 
-                // Compact Print Styles
+                // Compact Print Styles for Landscape
                 let printStyles = `
                     <style>
                         #pdf-temp-container * { box-sizing: border-box; }
@@ -731,6 +731,7 @@
                     }
                 }
 
+                // Explicitly set formatting for Landscape Document and force html2canvas to capture full width
                 var opt = {
                     margin:       0.2,
                     filename:     'Intune_Migration_Dashboard.pdf',
