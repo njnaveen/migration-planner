@@ -22,8 +22,11 @@
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
         
         .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-        .logo-area { padding: 15px 20px; font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e293b;}
-        .logo-icon { color: #4ade80; }
+        
+        /* Updated Logo Area */
+        .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121;}
+        .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
+        
         .nav-menu { flex: 1; padding: 15px 0; }
         .nav-item { padding: 10px 20px; display: flex; align-items: center; gap: 12px; color: #cbd5e1; text-decoration: none; transition: all 0.2s; cursor: pointer; font-size: 13px;}
         .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); color: white; border-left: 4px solid var(--primary); }
@@ -71,7 +74,6 @@
         .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
         .dot-green { background: #10b981; } .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; }
 
-        /* TIGHTENED DASHBOARD LAYOUT */
         .dash-panel { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
         .dash-panel-title { font-size: 13px; font-weight: bold; margin: 0 0 10px 0; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;}
         
@@ -99,7 +101,6 @@
         .matrix-table .bg-mig { background: #f3e8ff; }
         .matrix-table .bg-hyp { background: #ffe4e6; }
 
-        /* Chart Wrappers constraints to prevent blowing up the page */
         .chart-wrapper { position: relative; height: 180px; width: 100%; }
 
         .gantt-wrapper { font-size: 10px; }
@@ -120,7 +121,11 @@
 
     <!-- SIDEBAR -->
     <div class="sidebar">
-        <div class="logo-area"><i class="fa-solid fa-server logo-icon"></i> LZebra</div>
+        <!-- LINK TO YOUR NEW GITHUB LOGO -->
+        <div class="logo-area">
+            <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
+        </div>
+        
         <div class="nav-menu">
             <a class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
             <a class="nav-item active"><i class="fa-solid fa-table-list"></i> Planner</a>
@@ -150,7 +155,6 @@
 
         <div class="content-scroll">
             
-            <!-- STEPPER NAVIGATION -->
             <div class="stepper">
                 <div class="step active" id="nav-step-1" onclick="switchTab(1)"><i class="fa-solid fa-1"></i> Platform & Inputs</div>
                 <div class="step" id="nav-step-2" onclick="switchTab(2)"><i class="fa-solid fa-2"></i> FTE Matrix</div>
@@ -279,7 +283,6 @@
                 <div id="printable-dashboard">
                     <h3 style="margin: 0 0 10px 0; font-size: 16px;">Executive Summary</h3>
                     
-                    <!-- Row 1: Summary Cards -->
                     <div class="summary-grid">
                         <div class="sum-card">
                             <i class="fa-solid fa-users sum-icon sum-icon-blue"></i>
@@ -307,7 +310,6 @@
                         </div>
                     </div>
 
-                    <!-- Row 2: Matrix & Trend Line -->
                     <div class="dash-row-2">
                         <div class="dash-panel" style="overflow-x: auto;">
                             <h4 class="dash-panel-title">1. Month-by-Month Phase & FTE Matrix</h4>
@@ -315,14 +317,12 @@
                         </div>
                         <div class="dash-panel">
                             <h4 class="dash-panel-title">2. FTE Trend</h4>
-                            <!-- Strict height wrapper to prevent Chart.js from blowing up layout -->
                             <div class="chart-wrapper">
                                 <canvas id="lineChart"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Row 3: Donut, Gantt, Waves -->
                     <div class="dash-row-3">
                         <div class="dash-panel">
                             <h4 class="dash-panel-title">3. FTE by Role (%)</h4>
@@ -340,7 +340,6 @@
                         </div>
                     </div>
 
-                    <!-- Row 4: Text Lists -->
                     <div class="dash-row-4">
                         <div class="dash-panel">
                             <h4 class="dash-panel-title">6. Top Risks</h4>
@@ -405,7 +404,6 @@
         let lineChart = null;
         let donutChart = null;
         
-        // Global variables to store chart data generated in calculatePlan()
         let chartGlobalData = { labels: [], data: [], maxVal: 0 };
         let donutGlobalData = { labels: [], data: [], colors: [] };
 
@@ -431,7 +429,6 @@
             document.getElementById('tab-' + tabIndex).classList.add('active');
             document.getElementById('nav-step-' + tabIndex).classList.add('active');
             
-            // Fix for Chart.js rendering issue: Only draw charts when Tab 4 becomes physically visible
             if(tabIndex === 4 && isUnlocked) {
                 setTimeout(() => { renderCharts(); }, 50); 
             }
@@ -528,7 +525,6 @@
                 let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
                 let visiblePoint = Math.ceil(totalMonths * 0.25); 
 
-                // Dates
                 let startDate = document.getElementById('date-start').value;
                 if(startDate) {
                     let pilotDate = addMonths(startDate, assessmentM + foundationM);
@@ -540,7 +536,6 @@
                     document.getElementById('date-hyper').value = hyperDate;
                 }
                 
-                // Waves Table Logic
                 let waveTable = `<tr><th>Wave</th><th>Devices</th><th>Status</th></tr>`;
                 let remDevs = devices;
                 let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
@@ -561,7 +556,6 @@
                 }
                 document.getElementById('dash-waves-table').innerHTML = waveTable;
 
-                // FTE Matrix Logic
                 function getFTE(peak, role, m) {
                     if (peak === 0) return 0;
                     let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
@@ -590,7 +584,6 @@
                 let monthlyTotals = new Array(totalMonths + 1).fill(0);
                 let peakFTE = 0, totalPersonMonths = 0;
                 
-                // Clear previous chart data
                 donutGlobalData = { labels: [], data: [], colors: [] };
 
                 roles.forEach(role => {
@@ -624,11 +617,9 @@
                 }
                 matrixHTML += '</tr></table>';
 
-                // Output Matrix
                 document.getElementById('tab2-matrix-container').innerHTML = matrixHTML;
                 document.getElementById('dash-matrix-container').innerHTML = matrixHTML;
 
-                // Sync Global Data 
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
                 let totalBatches = Math.ceil(devices / batchSize);
                 let goLiveMonth = assessmentM + foundationM + pilotM + 1;
@@ -649,7 +640,6 @@
                     document.getElementById('dash-waves').innerText = totalBatches;
                     document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                    // --- GENERATE GANTT CHART (CSS) ---
                     let ganttHTML = `<div class="gantt-header">`;
                     for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
                     ganttHTML += `</div>`;
@@ -669,7 +659,7 @@
             }
         }
 
-        // --- PDF EXPORT ---
+        // --- PDF EXPORT WITH NEW LOGO ---
         function generatePDF() {
             let btn = document.getElementById('btn-export');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
@@ -677,7 +667,6 @@
             let dashClone = document.getElementById('printable-dashboard').cloneNode(true);
             let wrap = document.getElementById('pdf-wrapper');
             
-            // Re-draw canvases as images for PDF reliability
             let lineImg = new Image(); lineImg.src = document.getElementById('lineChart').toDataURL(); lineImg.style.width = '100%';
             let donutImg = new Image(); donutImg.src = document.getElementById('donutChart').toDataURL(); donutImg.style.width = '100%';
             
@@ -687,9 +676,15 @@
 
             wrap.innerHTML = `
                 <div style="background:white; padding:30px; font-family:sans-serif; color:black; width:1000px;">
-                    <div style="border-bottom: 2px solid #0284c7; padding-bottom: 10px; margin-bottom:20px;">
-                        <h1 style="color: #0f172a; margin:0; font-size:24px;">Intune Migration Executive Report</h1>
-                        <p style="color: #64748b; margin: 5px 0 0 0; font-size:12px;">Generated by LZebra Planner</p>
+                    <div style="border-bottom: 2px solid #0284c7; padding-bottom: 15px; margin-bottom:20px; display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div>
+                            <h1 style="color: #0f172a; margin:0; font-size:24px;">Intune Migration Executive Report</h1>
+                            <p style="color: #64748b; margin: 5px 0 0 0; font-size:12px;">Generated by LZebra Planner</p>
+                        </div>
+                        <div>
+                            <!-- PULLS THE SAME GITHUB LOGO INTO THE PDF -->
+                            <img src="./logo.png" style="max-height: 45px;">
+                        </div>
                     </div>
                     ${dashClone.innerHTML}
                 </div>
