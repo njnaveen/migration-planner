@@ -652,18 +652,16 @@
             }
         }
 
-        // --- BULLETPROOF DOM SWAP METHOD FOR PDF EXPORT ---
+        // --- BULLETPROOF PDF EXPORT WITH STRICT SIZING ---
         function generatePDF() {
             let btn = document.getElementById('btn-export');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
             
             try {
-                // 1. Reset scroll position to top
                 window.scrollTo(0, 0);
 
-                // 2. Create Loading Overlay
                 let overlay = document.createElement('div');
-                overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(248, 250, 252, 0.98); z-index: 2147483647; display: flex; flex-direction: column; align-items: center; justify-content: center;";
+                overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f8fafc; z-index: 2147483647; display: flex; flex-direction: column; align-items: center; justify-content: center;";
                 overlay.innerHTML = `
                     <i class="fa-solid fa-file-pdf fa-bounce" style="font-size: 50px; color: #0284c7; margin-bottom: 20px;"></i>
                     <h2 style="font-family: sans-serif; color: #1e293b; margin: 0;">Generating Landscape Report...</h2>
@@ -671,34 +669,32 @@
                 `;
                 document.body.appendChild(overlay);
 
-                // 3. Hide the entire existing UI to eliminate ALL clipping conflicts
                 let sidebar = document.querySelector('.sidebar');
                 let mainContent = document.querySelector('.main-content');
                 let oldSidebarDisplay = sidebar.style.display;
                 let oldMainDisplay = mainContent.style.display;
-                
                 sidebar.style.display = 'none';
                 mainContent.style.display = 'none';
 
-                // Strip the body restrictions
                 let oldOverflow = document.body.style.overflow;
                 let oldHeight = document.body.style.height;
+                let oldBg = document.body.style.background;
                 document.body.style.overflow = 'visible';
                 document.body.style.height = 'auto';
+                document.body.style.background = 'white';
 
-                // 4. Inject the PDF target directly into the normal document flow
                 let renderZone = document.createElement('div');
                 renderZone.id = "pdf-render-zone";
-                // Centered, static width, normal flow
-                renderZone.style.cssText = "width: 1120px; background: white; padding: 25px; box-sizing: border-box; margin: 0 auto; display: block;";
+                // FORCE IT TO TOP LEFT, FIXED WIDTH, NO MARGIN AUTO
+                renderZone.style.cssText = "position: absolute; top: 0; left: 0; width: 1122px; background: white; padding: 25px; box-sizing: border-box; margin: 0;";
 
                 let printStyles = `
                     <style>
                         #pdf-render-zone * { box-sizing: border-box; }
-                        #pdf-render-zone .dash-panel { padding: 12px !important; margin-bottom: 0 !important; }
+                        #pdf-render-zone .dash-panel { padding: 12px !important; margin-bottom: 0 !important; border: 1px solid #e2e8f0 !important; }
                         #pdf-render-zone .dash-row-2, #pdf-render-zone .dash-row-3, #pdf-render-zone .dash-row-4 { gap: 12px !important; margin-bottom: 12px !important; }
                         #pdf-render-zone .summary-grid { gap: 10px !important; margin-bottom: 12px !important; }
-                        #pdf-render-zone .sum-card { padding: 10px !important; }
+                        #pdf-render-zone .sum-card { padding: 10px !important; border: 1px solid #e2e8f0 !important; }
                         #pdf-render-zone .dash-panel-title { margin-bottom: 8px !important; font-size: 13px !important; padding-bottom: 6px !important; }
                         #pdf-render-zone h3 { margin-bottom: 10px !important; font-size: 15px !important; }
                         #pdf-render-zone .chart-wrapper { height: 140px !important; }
@@ -730,14 +726,12 @@
                 renderZone.appendChild(clone);
                 document.body.appendChild(renderZone);
 
-                // Convert canvases to images
                 let origCanvases = Array.from(originalDashboard.getElementsByTagName('canvas'));
                 let cloneCanvases = Array.from(renderZone.getElementsByTagName('canvas'));
                 
                 for (let i = 0; i < origCanvases.length; i++) {
                     let img = new Image();
                     img.src = origCanvases[i].toDataURL('image/png', 1.0);
-                    // Explicitly set width to match the wrapper for perfect scaling
                     img.style.width = '100%';
                     img.style.height = '140px'; 
                     img.style.objectFit = 'contain';
@@ -746,43 +740,49 @@
                     }
                 }
 
-                // Remove windowWidth override, let it render naturally in the flow
                 var opt = {
-                    margin:       0.2,
+                    margin:       0.25,
                     filename:     'Intune_Migration_Dashboard.pdf',
                     image:        { type: 'jpeg', quality: 1.0 },
-                    html2canvas:  { scale: 2, useCORS: true }, 
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true, 
+                        width: 1122,       // STRICT WIDTH TO PREVENT WHITE SPACE PADDING
+                        windowWidth: 1122, // STRICT WINDOW WIDTH
+                        scrollY: 0,
+                        scrollX: 0
+                    },
                     jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
                 };
 
-                // Allow 500ms for DOM to process the massive layout change
                 setTimeout(() => {
                     html2pdf().set(opt).from(renderZone).save().then(() => {
-                        // Restore everything
                         document.body.removeChild(renderZone);
                         document.body.removeChild(overlay);
-                        sidebar.style.display = oldSidebarDisplay || 'flex';
-                        mainContent.style.display = oldMainDisplay || 'flex';
+                        sidebar.style.display = oldSidebarDisplay;
+                        mainContent.style.display = oldMainDisplay;
                         document.body.style.overflow = oldOverflow;
                         document.body.style.height = oldHeight;
+                        document.body.style.background = oldBg;
                         btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
                     }).catch(err => {
                         console.error(err);
                         if (document.body.contains(renderZone)) document.body.removeChild(renderZone);
                         if (document.body.contains(overlay)) document.body.removeChild(overlay);
-                        sidebar.style.display = oldSidebarDisplay || 'flex';
-                        mainContent.style.display = oldMainDisplay || 'flex';
+                        sidebar.style.display = oldSidebarDisplay;
+                        mainContent.style.display = oldMainDisplay;
                         document.body.style.overflow = oldOverflow;
                         document.body.style.height = oldHeight;
+                        document.body.style.background = oldBg;
                         btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
-                        alert("Error generating PDF. Check console.");
+                        alert("Error generating PDF.");
                     });
                 }, 500);
 
             } catch(error) {
                 console.error(error);
                 btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
-                alert("Error preparing PDF. Check console.");
+                alert("Error preparing PDF.");
             }
         }
     </script>
