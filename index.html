@@ -45,7 +45,6 @@
       <h3>🔒 Unlock the Full Data</h3>
       <p style="color: #605e5c;">Get the complete end-to-end month-by-month resource breakdown for just ₹99.99.</p>
       
-      <!-- PASTE YOUR RAZORPAY BUTTON SNIPPET BELOW -->
       <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
     </div>
   </div>
@@ -53,13 +52,18 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('status') === 'paid') {
+        
+        // UPDATED: Check for the presence of payment_id instead of status=paid
+        if (urlParams.has('payment_id')) {
             localStorage.setItem('planner_unlocked', 'true');
+            // Clean the URL
             window.history.replaceState({}, document.title, window.location.pathname);
-            alert("Payment successful! Unlocking data...");
+            alert("Payment detected! Unlocking data...");
         }
+
         if(localStorage.getItem('planner_unlocked') === 'true') {
             document.getElementById('paywallSection').style.display = 'none';
+            // Trigger calculation automatically if unlocked
             calculatePlan(); 
         }
         toggleAppInput();
@@ -71,6 +75,12 @@
     }
 
     function calculatePlan() {
+      localStorage.setItem('planner_osType', document.getElementById('osType').value);
+      localStorage.setItem('planner_totalDevices', document.getElementById('totalDevices').value);
+      localStorage.setItem('planner_batchSize', document.getElementById('batchSize').value);
+      localStorage.setItem('planner_batchesPerWeek', document.getElementById('batchesPerWeek').value);
+      localStorage.setItem('planner_totalApps', document.getElementById('totalApps').value);
+
       let osType = document.getElementById('osType').value;
       let devices = parseInt(document.getElementById('totalDevices').value);
       let batchSize = parseInt(document.getElementById('batchSize').value);
