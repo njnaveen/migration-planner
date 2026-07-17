@@ -6,7 +6,6 @@
     <title>Intune Migration Planner Dashboard</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -19,14 +18,15 @@
             --c-mig: #c084fc; --c-hyp: #fca5a5;
         }
 
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); position: relative;}
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
         
+        /* SIDEBAR */
         .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;}
         .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121;}
         .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
         
         .nav-menu { flex: 1; padding: 15px 0; }
-        .nav-item { padding: 10px 20px; display: flex; align-items: center; gap: 12px; color: #cbd5e1; text-decoration: none; transition: all 0.2s; cursor: pointer; font-size: 13px;}
+        .nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 12px; color: #cbd5e1; text-decoration: none; transition: all 0.2s; cursor: pointer; font-size: 14px;}
         .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); color: white; border-left: 4px solid var(--primary); }
 
         .snapshot-area { background-color: #0b1121; padding: 15px 20px; border-top: 1px solid #1e293b; font-size: 12px; }
@@ -35,63 +35,66 @@
         .snap-label { color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
         .snap-value { font-size: 14px; font-weight: 600; color: white; margin-top: 2px;}
 
+        /* MAIN CONTENT AREA */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background-color: var(--bg-light); z-index: 10; width: 100%;}
-        .header { padding: 12px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .header h2 { margin: 0; font-size: 16px; }
-        .header-actions button { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color); background: white; cursor: pointer; font-weight: 500; margin-left: 10px; font-size: 12px;}
-        .header-actions .btn-primary { background: var(--primary); color: white; border: none; }
-        .content-scroll { flex: 1; overflow-y: auto; padding: 20px; }
+        .header { padding: 15px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 18px; }
+        .header-actions button { padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border-color); background: white; cursor: pointer; font-weight: 500; margin-left: 10px; font-size: 13px;}
+        .content-scroll { flex: 1; overflow-y: auto; padding: 25px; }
 
-        .stepper { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px;}
-        .step { font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px; font-size: 13px; transition: 0.2s; }
+        /* VIEW TOGGLING */
+        .main-view { display: none; animation: fadeIn 0.3s; }
+        .main-view.active { display: block; }
+
+        /* PLANNER STEPPER */
+        .stepper { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
+        .step { font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px; font-size: 14px; transition: 0.2s; }
         .step:hover { color: var(--primary); }
-        .step.active { color: var(--primary); border-bottom: 3px solid var(--primary); margin-bottom: -11px; padding-bottom: 8px;}
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.2s; }
+        .step.active { color: var(--primary); border-bottom: 3px solid var(--primary); margin-bottom: -13px; padding-bottom: 10px;}
+        .tab-content { display: none; animation: fadeIn 0.2s; }
+        .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .card-header { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;}
+        /* SHARED COMPONENTS */
+        .card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .card-header { font-size: 15px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         .input-grid { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;}
         .input-group { flex: 1; min-width: 140px; }
-        .input-group label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 5px; color: var(--text-dark);}
-        .input-group input, .input-group select { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; outline: none; font-size: 12px;}
-        .btn-action { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;}
+        .input-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-dark);}
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; outline: none; font-size: 13px;}
+        .btn-action { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px;}
         .btn-action:hover { background: var(--primary-hover); }
         .flex-between { display: flex; justify-content: space-between; align-items: center; margin-top: 15px;}
 
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .check-list { list-style: none; padding: 0; margin: 0; font-size: 11px; line-height: 1.6; }
-        .check-list li { display: flex; align-items: center; gap: 6px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .check-list { list-style: none; padding: 0; margin: 0; font-size: 13px; line-height: 1.8; }
+        .check-list li { display: flex; align-items: center; gap: 8px; }
         .check-list i { color: #10b981; }
-        .data-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
-        .data-table th, .data-table td { border: 1px solid var(--border-color); padding: 6px 8px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        .data-table th, .data-table td { border: 1px solid var(--border-color); padding: 10px; }
         .data-table th { background: #f8fafc; font-weight: 600; }
-        .data-table input[type="date"] { width: 100%; font-family: inherit; font-size: 11px; cursor: pointer; border:none; outline:none; background:transparent;}
-        .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+        .data-table input[type="date"] { width: 100%; font-family: inherit; font-size: 13px; cursor: pointer; border:none; outline:none; background:transparent;}
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
         .dot-green { background: #10b981; } .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; }
 
-        .dash-panel { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
-        .dash-panel-title { font-size: 13px; font-weight: bold; margin: 0 0 10px 0; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;}
+        /* DASHBOARD CARDS */
+        .dash-panel { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 100%; box-sizing: border-box;}
+        .dash-panel-title { font-size: 15px; font-weight: bold; margin: 0 0 15px 0; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         
-        .summary-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 15px; }
-        .sum-card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
-        .sum-icon { font-size: 20px; padding: 8px; border-radius: 6px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+        .sum-card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);}
+        .sum-icon { font-size: 28px; padding: 12px; border-radius: 8px; }
         .sum-icon-blue { color: #3b82f6; background: #eff6ff; }
         .sum-icon-green { color: #10b981; background: #dcfce7; }
         .sum-icon-purple { color: #a855f7; background: #f3e8ff; }
         .sum-icon-orange { color: #f59e0b; background: #fef3c7; }
-        .sum-data label { display: block; font-size: 10px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 1px;}
-        .sum-data .val { font-size: 18px; font-weight: bold; color: var(--text-dark); line-height: 1.1;}
-        .sum-data .sub { font-size: 10px; color: var(--text-muted); margin-top: 1px;}
+        .sum-data label { display: block; font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 3px;}
+        .sum-data .val { font-size: 24px; font-weight: bold; color: var(--text-dark); line-height: 1.1;}
+        .sum-data .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px;}
 
-        .dash-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px; }
-        .dash-row-3 { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 15px; margin-bottom: 15px; }
-        .dash-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }
-
-        .matrix-table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: center; }
-        .matrix-table th, .matrix-table td { border: 1px solid var(--border-color); padding: 4px; }
+        /* MATRICES & CHARTS */
+        .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+        .matrix-table th, .matrix-table td { border: 1px solid var(--border-color); padding: 8px; }
         .matrix-table .role-name { text-align: left; font-weight: 500; background: white; }
         .matrix-table .bg-assess { background: #e0f2fe; }
         .matrix-table .bg-found { background: #dcfce7; }
@@ -99,35 +102,35 @@
         .matrix-table .bg-mig { background: #f3e8ff; }
         .matrix-table .bg-hyp { background: #ffe4e6; }
 
-        .chart-wrapper { position: relative; height: 180px; width: 100%; }
+        .chart-wrapper { position: relative; height: 250px; width: 100%; }
 
-        .gantt-wrapper { font-size: 10px; }
-        .gantt-header { display: flex; border-bottom: 1px solid var(--border-color); padding-bottom: 3px; margin-bottom: 8px; padding-left: 80px; color: var(--text-muted);}
+        .gantt-wrapper { font-size: 12px; margin-top: 20px;}
+        .gantt-header { display: flex; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; padding-left: 100px; color: var(--text-muted);}
         .gantt-month { flex: 1; text-align: center; }
-        .gantt-row { display: flex; align-items: center; margin-bottom: 6px; }
-        .gantt-label { width: 80px; font-weight: 500; }
-        .gantt-track { flex: 1; background: #f1f5f9; height: 12px; border-radius: 6px; position: relative; }
-        .gantt-bar { position: absolute; height: 100%; border-radius: 6px; }
+        .gantt-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .gantt-label { width: 100px; font-weight: 500; }
+        .gantt-track { flex: 1; background: #f1f5f9; height: 16px; border-radius: 8px; position: relative; }
+        .gantt-bar { position: absolute; height: 100%; border-radius: 8px; }
 
-        .paywall { text-align: center; background: #f8fafc; padding: 30px; border: 1px dashed #cbd5e1; border-radius: 6px; margin-top: 15px; }
-        .paywall h3 { margin-top: 0; color: var(--text-dark); font-size:16px;}
-        .locked-cell { color: transparent; text-shadow: 0 0 4px rgba(0,0,0,0.3); user-select: none; background: #f1f5f9; }
+        .paywall { text-align: center; background: #f8fafc; padding: 40px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-top: 20px; }
+        .paywall h3 { margin-top: 0; color: var(--text-dark); font-size: 18px;}
+        .locked-cell { color: transparent; text-shadow: 0 0 5px rgba(0,0,0,0.4); user-select: none; background: #f1f5f9; }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR -->
+    <!-- INTERACTIVE SIDEBAR NAVIGATION -->
     <div class="sidebar">
         <div class="logo-area">
             <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
         </div>
         
         <div class="nav-menu">
-            <a class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
-            <a class="nav-item active"><i class="fa-solid fa-table-list"></i> Planner</a>
-            <a class="nav-item"><i class="fa-solid fa-timeline"></i> Timeline</a>
-            <a class="nav-item"><i class="fa-solid fa-users"></i> Resources</a>
-            <a class="nav-item"><i class="fa-solid fa-triangle-exclamation"></i> Risks</a>
+            <a class="nav-item active" id="nav-planner" onclick="switchMainView('planner')"><i class="fa-solid fa-sliders"></i> Planner Setup</a>
+            <a class="nav-item" id="nav-dashboard" onclick="switchMainView('dashboard')"><i class="fa-solid fa-chart-pie"></i> Executive Dashboard</a>
+            <a class="nav-item" id="nav-timeline" onclick="switchMainView('timeline')"><i class="fa-solid fa-timeline"></i> Project Timeline</a>
+            <a class="nav-item" id="nav-resources" onclick="switchMainView('resources')"><i class="fa-solid fa-users"></i> Resource Matrix</a>
+            <a class="nav-item" id="nav-risks" onclick="switchMainView('risks')"><i class="fa-solid fa-triangle-exclamation"></i> Risks & Notes</a>
         </div>
         
         <div class="snapshot-area">
@@ -140,251 +143,257 @@
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN APP CONTAINER -->
     <div class="main-content">
         <div class="header">
-            <h2>Intune Migration Planner</h2>
+            <h2 id="app-header-title">Planner Setup</h2>
             <div class="header-actions">
-                <button onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i> Reset</button>
+                <button onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i> Reset Planner</button>
             </div>
         </div>
 
         <div class="content-scroll">
-            
-            <div class="stepper">
-                <div class="step active" id="nav-step-1" onclick="switchTab(1)"><i class="fa-solid fa-1"></i> Platform & Inputs</div>
-                <div class="step" id="nav-step-2" onclick="switchTab(2)"><i class="fa-solid fa-2"></i> FTE Matrix</div>
-                <div class="step" id="nav-step-3" onclick="switchTab(3)"><i class="fa-solid fa-3"></i> Planner Setup</div>
-                <div class="step" id="nav-step-4" onclick="switchTab(4)"><i class="fa-solid fa-4"></i> Dashboard (Results)</div>
-                <div class="step" id="nav-step-5" onclick="switchTab(5)"><i class="fa-solid fa-5"></i> Generate Report</div>
-            </div>
 
-            <!-- TAB 1: INPUTS -->
-            <div id="tab-1" class="tab-content active">
-                <div class="card">
-                    <div class="card-header"><i class="fa-solid fa-sliders"></i> Migration Scope</div>
-                    <div class="input-grid">
-                        <div class="input-group">
-                            <label>Select Platform</label>
-                            <select id="osType" onchange="handlePlatformChange()">
-                                <option value="windows">Windows</option>
-                                <option value="mobile">Mobile (iOS/Android)</option>
-                                <option value="mac">Mac OS</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>Total Devices</label>
-                            <input type="number" id="totalDevices" value="50000">
-                        </div>
-                        <div class="input-group">
-                            <label>Devices per Batch</label>
-                            <input type="number" id="batchSize" value="2500">
-                        </div>
-                        <div class="input-group">
-                            <label>Target Batches / Week</label>
-                            <input type="number" id="batchesPerWeek" value="1">
-                        </div>
-                        <div class="input-group" id="appsContainer">
-                            <label>Total Apps to Package</label>
-                            <input type="number" id="totalApps" value="400">
-                        </div>
-                    </div>
-                    <div class="flex-between">
-                        <div></div>
-                        <button class="btn-action" onclick="calculateAndAdvance(2)">Calculate FTE Matrix <i class="fa-solid fa-arrow-right"></i></button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: FTE MATRIX -->
-            <div id="tab-2" class="tab-content">
-                <div class="card" style="padding: 0; overflow: hidden;">
-                    <div class="card-header" style="padding: 15px; border-bottom: none; margin: 0;"><i class="fa-regular fa-calendar-days"></i> Month-by-Month Phase & FTE Matrix</div>
-                    <div style="overflow-x: auto; padding: 0 15px 15px 15px;" id="tab2-matrix-container"></div>
-                </div>
+            <!-- ==========================================
+                 VIEW 1: PLANNER SETUP WIZARD 
+                 ========================================== -->
+            <div id="view-planner" class="main-view active">
                 
-                <div id="paywallSection" class="paywall">
-                    <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Planner</h3>
-                    <p style="font-size: 13px;">The remaining 75% of your matrix, planner setup, and executive dashboard are hidden. Unlock full access for just ₹99.99.</p>
-                    <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
+                <div class="stepper">
+                    <div class="step active" id="nav-step-1" onclick="switchWizardTab(1)"><i class="fa-solid fa-1"></i> Platform & Scope</div>
+                    <div class="step" id="nav-step-2" onclick="switchWizardTab(2)"><i class="fa-solid fa-2"></i> Initial FTE Matrix</div>
+                    <div class="step" id="nav-step-3" onclick="switchWizardTab(3)"><i class="fa-solid fa-3"></i> Strategic Settings</div>
                 </div>
 
-                <div class="flex-between" id="tab-2-actions" style="display: none;">
-                    <button class="btn-action" style="background: var(--text-muted);" onclick="switchTab(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                    <button class="btn-action" onclick="switchTab(3)">Continue to Planner Setup <i class="fa-solid fa-arrow-right"></i></button>
-                </div>
-            </div>
-
-            <!-- TAB 3: PLANNER SETUP -->
-            <div id="tab-3" class="tab-content">
-                <div class="grid-2">
-                    <div>
-                        <div class="card">
-                            <div class="card-header"><i class="fa-solid fa-chess-knight"></i> 1. Migration Strategy</div>
+                <!-- Wizard Tab 1: Scope -->
+                <div id="tab-1" class="tab-content active">
+                    <div class="card">
+                        <div class="card-header"><i class="fa-solid fa-server"></i> Migration Scope Parameters</div>
+                        <div class="input-grid">
                             <div class="input-group">
-                                <label>Migration Type</label>
-                                <select>
-                                    <option>Wave Based</option>
-                                    <option>Big Bang</option>
-                                    <option>Ring Based</option>
-                                    <option>Country Based</option>
-                                    <option>Hybrid</option>
+                                <label>Select Platform</label>
+                                <select id="osType" onchange="handlePlatformChange()">
+                                    <option value="windows">Windows</option>
+                                    <option value="mobile">Mobile (iOS/Android)</option>
+                                    <option value="mac">Mac OS</option>
                                 </select>
                             </div>
+                            <div class="input-group">
+                                <label>Total Devices</label>
+                                <input type="number" id="totalDevices" value="50000">
+                            </div>
+                            <div class="input-group">
+                                <label>Devices per Batch</label>
+                                <input type="number" id="batchSize" value="2500">
+                            </div>
+                            <div class="input-group">
+                                <label>Target Batches / Week</label>
+                                <input type="number" id="batchesPerWeek" value="1">
+                            </div>
+                            <div class="input-group" id="appsContainer">
+                                <label>Total Apps to Package</label>
+                                <input type="number" id="totalApps" value="400">
+                            </div>
                         </div>
-                        <div class="card">
-                            <div class="card-header"><i class="fa-solid fa-clock"></i> 2. Project Timeline</div>
-                            <table class="data-table">
-                                <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()"></td></tr>
-                                <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="color: var(--text-muted);"></td></tr>
-                                <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="color: var(--text-muted);"></td></tr>
-                                <tr><td>Hypercare Start</td><td><input type="date" id="date-hyper" readonly style="color: var(--text-muted);"></td></tr>
-                            </table>
+                        <div class="flex-between">
+                            <div></div>
+                            <button class="btn-action" onclick="calculateAndAdvance(2)">Calculate FTE Matrix <i class="fa-solid fa-arrow-right"></i></button>
                         </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header"><i class="fa-solid fa-laptop-code"></i> 3. Platform Configuration</div>
-                        <ul class="check-list" id="config-windows">
-                            <li><input type="checkbox" checked> Autopilot</li>
-                            <li><input type="checkbox" checked> Co-management</li>
-                            <li><input type="checkbox" checked> Hybrid Join</li>
-                            <li><input type="checkbox" checked> Azure AD Join</li>
-                            <li><input type="checkbox" checked> Defender</li>
-                            <li><input type="checkbox" checked> BitLocker</li>
-                        </ul>
-                        <ul class="check-list" id="config-mobile" style="display:none;">
-                            <li><input type="checkbox" checked> Apple Business Manager (ABM)</li>
-                            <li><input type="checkbox" checked> ADE / VPP</li>
-                            <li><input type="checkbox" checked> Android Enterprise</li>
-                            <li><input type="checkbox" checked> Shared Devices (No Affinity)</li>
-                        </ul>
-                        <ul class="check-list" id="config-mac" style="display:none;">
-                            <li><input type="checkbox" checked> FileVault</li>
-                            <li><input type="checkbox" checked> PPPC & Extensions</li>
-                            <li><input type="checkbox" checked> Platform SSO</li>
-                        </ul>
                     </div>
                 </div>
 
-                <div class="flex-between">
-                    <button class="btn-action" style="background: var(--text-muted);" onclick="switchTab(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                    <button class="btn-action" onclick="calculateAndAdvance(4)">View Executive Dashboard <i class="fa-solid fa-arrow-right"></i></button>
-                </div>
-            </div>
-
-            <!-- TAB 4: COMPACT EXECUTIVE DASHBOARD -->
-            <div id="tab-4" class="tab-content">
-                
-                <div id="printable-dashboard">
-                    <h3 style="margin: 0 0 10px 0; font-size: 16px;">Executive Summary</h3>
+                <!-- Wizard Tab 2: Matrix Preview -->
+                <div id="tab-2" class="tab-content">
+                    <div class="card" style="padding: 0; overflow: hidden;">
+                        <div class="card-header" style="padding: 20px; border-bottom: none; margin: 0;"><i class="fa-regular fa-calendar-days"></i> Month-by-Month Phase & FTE Matrix Preview</div>
+                        <div style="overflow-x: auto; padding: 0 20px 20px 20px;" id="tab2-matrix-container"></div>
+                    </div>
                     
-                    <div class="summary-grid">
-                        <div class="sum-card">
-                            <i class="fa-solid fa-users sum-icon sum-icon-blue"></i>
-                            <div class="sum-data"><label>Peak FTE</label><div class="val" id="dash-peak">0</div><div class="sub">Max Required</div></div>
-                        </div>
-                        <div class="sum-card">
-                            <i class="fa-regular fa-calendar sum-icon sum-icon-green"></i>
-                            <div class="sum-data"><label>Duration</label><div class="val" id="dash-duration">0 Mo</div><div class="sub">End-to-End</div></div>
-                        </div>
-                        <div class="sum-card">
-                            <i class="fa-solid fa-water sum-icon sum-icon-purple"></i>
-                            <div class="sum-data"><label>Batches</label><div class="val" id="dash-waves">0</div><div class="sub">Total Rollouts</div></div>
-                        </div>
-                        <div class="sum-card">
-                            <i class="fa-solid fa-user-clock sum-icon sum-icon-orange"></i>
-                            <div class="sum-data"><label>Person Months</label><div class="val" id="dash-pm">0</div><div class="sub">Total Effort</div></div>
-                        </div>
-                        <div class="sum-card">
-                            <i class="fa-solid fa-rocket sum-icon sum-icon-green"></i>
-                            <div class="sum-data"><label>Go-Live</label><div class="val" id="dash-golive">M0</div><div class="sub">Production Start</div></div>
-                        </div>
-                        <div class="sum-card">
-                            <i class="fa-solid fa-shield-halved sum-icon sum-icon-orange"></i>
-                            <div class="sum-data"><label>Overall Risk</label><div class="val">Medium</div><div class="sub">Moderate</div></div>
-                        </div>
+                    <div id="paywallSection" class="paywall">
+                        <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Dashboard</h3>
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining 75% of your matrix, timeline, charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
+                        <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
                     </div>
 
-                    <div class="dash-row-2">
-                        <div class="dash-panel" style="overflow-x: auto;">
-                            <h4 class="dash-panel-title">1. Month-by-Month Phase & FTE Matrix</h4>
-                            <div id="dash-matrix-container"></div>
-                        </div>
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">2. FTE Trend</h4>
-                            <div class="chart-wrapper">
-                                <canvas id="lineChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="dash-row-3">
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">3. FTE by Role (%)</h4>
-                            <div class="chart-wrapper">
-                                <canvas id="donutChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">4. Migration Timeline</h4>
-                            <div class="gantt-wrapper" id="gantt-container"></div>
-                        </div>
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">5. Migration Waves Plan</h4>
-                            <table class="data-table" id="dash-waves-table" style="font-size:10px;"></table>
-                        </div>
-                    </div>
-
-                    <div class="dash-row-4">
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">6. Top Risks</h4>
-                            <ul class="check-list">
-                                <li><span class="status-dot dot-red"></span> App compatibility</li>
-                                <li><span class="status-dot dot-yellow"></span> GPO complexity</li>
-                                <li><span class="status-dot dot-yellow"></span> User adoption</li>
-                                <li><span class="status-dot dot-green"></span> Bandwidth</li>
-                            </ul>
-                        </div>
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">7. Dependencies</h4>
-                            <ul class="check-list">
-                                <li><i class="fa-solid fa-check"></i> Intune Tenant Setup</li>
-                                <li><i class="fa-solid fa-check"></i> Azure AD Ready</li>
-                                <li><span style="color:#f59e0b; margin-right:6px;"><i class="fa-solid fa-spinner"></i></span> Autopilot Profile</li>
-                                <li><i class="fa-solid fa-check"></i> Packaging Lab</li>
-                            </ul>
-                        </div>
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">8. Key Assumptions</h4>
-                            <ul class="check-list" id="dash-assumptions-list" style="color: var(--text-muted);"></ul>
-                        </div>
-                        <div class="dash-panel">
-                            <h4 class="dash-panel-title">9. Recommendations</h4>
-                            <ul class="check-list" style="color: var(--text-muted);">
-                                <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Start packaging early.</li>
-                                <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Migrate GPOs in waves.</li>
-                                <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Run diverse pilot.</li>
-                                <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Strong change mgmt.</li>
-                            </ul>
-                        </div>
+                    <div class="flex-between" id="tab-2-actions" style="display: none;">
+                        <button class="btn-action" style="background: var(--text-muted);" onclick="switchWizardTab(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button class="btn-action" onclick="switchWizardTab(3)">Continue to Configuration <i class="fa-solid fa-arrow-right"></i></button>
                     </div>
                 </div>
 
-                <div class="flex-between">
-                    <button class="btn-action" style="background: var(--text-muted);" onclick="switchTab(3)"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                    <button class="btn-action" onclick="switchTab(5)">Finalize & Export <i class="fa-solid fa-arrow-right"></i></button>
+                <!-- Wizard Tab 3: Configuration -->
+                <div id="tab-3" class="tab-content">
+                    <div class="grid-2">
+                        <div>
+                            <div class="card">
+                                <div class="card-header"><i class="fa-solid fa-chess-knight"></i> Migration Strategy</div>
+                                <div class="input-group">
+                                    <label>Migration Type</label>
+                                    <select>
+                                        <option>Wave Based</option>
+                                        <option>Big Bang</option>
+                                        <option>Ring Based</option>
+                                        <option>Country Based</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><i class="fa-solid fa-clock"></i> Project Timeline Target</div>
+                                <table class="data-table">
+                                    <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()"></td></tr>
+                                    <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="color: var(--text-muted);"></td></tr>
+                                    <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="color: var(--text-muted);"></td></tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header"><i class="fa-solid fa-laptop-code"></i> Platform Baselines</div>
+                            <ul class="check-list" id="config-windows">
+                                <li><input type="checkbox" checked> Autopilot Provisioning</li>
+                                <li><input type="checkbox" checked> Co-management</li>
+                                <li><input type="checkbox" checked> Hybrid Azure AD Join</li>
+                                <li><input type="checkbox" checked> Windows Defender AV</li>
+                                <li><input type="checkbox" checked> BitLocker Encryption</li>
+                            </ul>
+                            <ul class="check-list" id="config-mobile" style="display:none;">
+                                <li><input type="checkbox" checked> Apple Business Manager (ABM)</li>
+                                <li><input type="checkbox" checked> ADE / VPP Configured</li>
+                                <li><input type="checkbox" checked> Android Enterprise</li>
+                                <li><input type="checkbox" checked> Shared Devices (No User Affinity)</li>
+                            </ul>
+                            <ul class="check-list" id="config-mac" style="display:none;">
+                                <li><input type="checkbox" checked> FileVault Encryption</li>
+                                <li><input type="checkbox" checked> PPPC & System Extensions</li>
+                                <li><input type="checkbox" checked> Platform SSO</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex-between">
+                        <button class="btn-action" style="background: var(--text-muted);" onclick="switchWizardTab(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button class="btn-action" onclick="switchMainView('dashboard')"><i class="fa-solid fa-chart-pie"></i> View Executive Dashboard</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ==========================================
+                 VIEW 2: EXECUTIVE DASHBOARD
+                 ========================================== -->
+            <div id="view-dashboard" class="main-view">
+                <div class="summary-grid">
+                    <div class="sum-card">
+                        <i class="fa-solid fa-users sum-icon sum-icon-blue"></i>
+                        <div class="sum-data"><label>Peak FTE Staffing</label><div class="val" id="dash-peak">0</div><div class="sub">Max Required</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-regular fa-calendar sum-icon sum-icon-green"></i>
+                        <div class="sum-data"><label>Total Duration</label><div class="val" id="dash-duration">0 Mo</div><div class="sub">End-to-End</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-rocket sum-icon sum-icon-green"></i>
+                        <div class="sum-data"><label>Est. Go-Live</label><div class="val" id="dash-golive">M0</div><div class="sub">Production Start</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-water sum-icon sum-icon-purple"></i>
+                        <div class="sum-data"><label>Migration Waves</label><div class="val" id="dash-waves">0</div><div class="sub">Total Rollouts</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-user-clock sum-icon sum-icon-orange"></i>
+                        <div class="sum-data"><label>Person Months</label><div class="val" id="dash-pm">0</div><div class="sub">Total Effort</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-shield-halved sum-icon sum-icon-orange"></i>
+                        <div class="sum-data"><label>Overall Risk</label><div class="val">Medium</div><div class="sub">Moderate</div></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><i class="fa-solid fa-bullseye"></i> High-Level Migration Path</div>
+                    <div class="gantt-wrapper" id="dash-gantt-container"></div>
                 </div>
             </div>
 
-            <!-- TAB 5: GENERATE REPORT -->
-            <div id="tab-5" class="tab-content">
-                <div class="card" style="max-width: 500px; margin: 0 auto;">
-                    <div class="card-header"><i class="fa-solid fa-file-pdf"></i> Generate Executive PDF</div>
-                    <p style="color: var(--text-muted); font-size: 13px;">Export the complete Executive Dashboard into a high-quality, landscape PDF presentation document.</p>
-                    <button class="btn-action" id="btn-export" style="width: 100%; justify-content: center; margin-top: 15px;" onclick="generatePDF()">
-                        <i class="fa-solid fa-download"></i> Download PDF Dashboard
-                    </button>
+            <!-- ==========================================
+                 VIEW 3: TIMELINE & WAVES
+                 ========================================== -->
+            <div id="view-timeline" class="main-view">
+                <div class="grid-2">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Migration Master Timeline</h4>
+                        <div class="gantt-wrapper" id="time-gantt-container"></div>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Migration Waves Schedule</h4>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="data-table" id="view-waves-table"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 VIEW 4: RESOURCE MATRIX
+                 ========================================== -->
+            <div id="view-resources" class="main-view">
+                <div class="dash-panel" style="margin-bottom: 20px; overflow-x: auto;">
+                    <h4 class="dash-panel-title">Month-by-Month Phase & FTE Matrix</h4>
+                    <div id="view-matrix-container"></div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE Total Trend (Per Month)</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE Effort by Role (%)</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="donutChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 VIEW 5: RISKS & NOTES
+                 ========================================== -->
+            <div id="view-risks" class="main-view">
+                <div class="grid-2">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Top Project Risks</h4>
+                        <ul class="check-list">
+                            <li><span class="status-dot dot-red"></span> Legacy application compatibility and packaging delays</li>
+                            <li><span class="status-dot dot-yellow"></span> Complex GPO to Intune policy mapping</li>
+                            <li><span class="status-dot dot-yellow"></span> End-user adoption and change management friction</li>
+                            <li><span class="status-dot dot-green"></span> Network bandwidth for large content distribution</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Technical Dependencies</h4>
+                        <ul class="check-list">
+                            <li><i class="fa-solid fa-check"></i> Intune Tenant Configured and Licensed</li>
+                            <li><i class="fa-solid fa-check"></i> Azure AD Environment Ready</li>
+                            <li><span style="color:#f59e0b; margin-right:6px;"><i class="fa-solid fa-spinner"></i></span> Device Enrollment Profiles Active</li>
+                            <li><i class="fa-solid fa-check"></i> Packaging Lab Provisioned</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Planning Assumptions</h4>
+                        <ul class="check-list" id="dash-assumptions-list" style="color: var(--text-muted);"></ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Recommendations</h4>
+                        <ul class="check-list" style="color: var(--text-muted);">
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Initiate app packaging early in the Assessment phase.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Migrate policies in iterative waves to isolate issues.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Ensure pilot group contains diverse device hardware types.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Develop strong, clear communication templates for users.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -409,29 +418,66 @@
             }
             isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
             document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
+            
+            // Initial calculations
             handlePlatformChange();
+            calculatePlan();
         });
 
-        function switchTab(tabIndex) {
-            if (!isUnlocked && tabIndex > 2) {
-                alert("Please unlock the planner to access the Setup, Dashboard, and Export features.");
+        // -----------------------------------------------------
+        // MAIN SIDEBAR NAVIGATION
+        // -----------------------------------------------------
+        function switchMainView(viewId) {
+            // Paywall Check for Protected Views
+            if (!isUnlocked && (viewId === 'dashboard' || viewId === 'timeline' || viewId === 'resources' || viewId === 'risks')) {
+                alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
                 return;
             }
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            document.getElementById('tab-' + tabIndex).classList.add('active');
-            document.getElementById('nav-step-' + tabIndex).classList.add('active');
-            
-            if(tabIndex === 4 && isUnlocked) {
+
+            // Hide all views
+            document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+            // Remove active classes from sidebar nav
+            document.querySelectorAll('.sidebar .nav-item').forEach(n => n.classList.remove('active'));
+
+            // Show selected view
+            document.getElementById('view-' + viewId).classList.add('active');
+            document.getElementById('nav-' + viewId).classList.add('active');
+
+            // Update Header Title based on view
+            const titles = {
+                'planner': 'Planner Setup',
+                'dashboard': 'Executive Dashboard',
+                'timeline': 'Project Timeline & Waves',
+                'resources': 'Resource Matrix & Analytics',
+                'risks': 'Risks & Assumptions'
+            };
+            document.getElementById('app-header-title').innerText = titles[viewId];
+
+            // Render charts ONLY if Resources view is active (prevents Chart.js 0x0 size bug)
+            if (viewId === 'resources') {
                 setTimeout(() => { renderCharts(); }, 50); 
             }
         }
 
-        function calculateAndAdvance(tabIndex) {
-            calculatePlan();
-            switchTab(tabIndex);
+        // -----------------------------------------------------
+        // PLANNER WIZARD NAVIGATION (Internal to Planner View)
+        // -----------------------------------------------------
+        function switchWizardTab(tabIndex) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabIndex).classList.add('active');
+            document.getElementById('nav-step-' + tabIndex).classList.add('active');
         }
 
+        function calculateAndAdvance(tabIndex) {
+            calculatePlan();
+            switchWizardTab(tabIndex);
+        }
+
+        // -----------------------------------------------------
+        // DATA & MATH LOGIC
+        // -----------------------------------------------------
         function handlePlatformChange() {
             let os = document.getElementById('osType').value;
             document.getElementById('appsContainer').style.display = (os === 'mobile') ? 'none' : 'block';
@@ -443,19 +489,19 @@
             let assumptions = "";
             if (os === 'windows') {
                 assumptions = `
-                    <li><i class="fa-solid fa-angle-right"></i> Deployment: ~600 devs/wk.</li>
-                    <li><i class="fa-solid fa-angle-right"></i> Apps: ~100 apps/wk.</li>
-                    <li><i class="fa-solid fa-angle-right"></i> Hypercare: 2 months.</li>`;
+                    <li><i class="fa-solid fa-angle-right"></i> Deployment: ~600 devs/wk per engineer.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> App Packaging: ~100 apps/wk per engineer.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> Hypercare phase estimated at 2 months.</li>`;
             } else if (os === 'mobile') {
                 assumptions = `
-                    <li><i class="fa-solid fa-angle-right"></i> Shared Devices = NO affinity.</li>
-                    <li><i class="fa-solid fa-angle-right"></i> ABM / AE pre-configured.</li>
-                    <li><i class="fa-solid fa-angle-right"></i> Hypercare: 1 month.</li>`;
+                    <li><i class="fa-solid fa-angle-right"></i> Shared Devices configured with NO user affinity.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> ABM / Android Enterprise previously configured.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> Hypercare phase estimated at 1 month.</li>`;
             } else {
                 assumptions = `
-                    <li><i class="fa-solid fa-angle-right"></i> Deployment: ~600 devs/wk.</li>
-                    <li><i class="fa-solid fa-angle-right"></i> ABM configured for zero-touch.</li>
-                    <li><i class="fa-solid fa-angle-right"></i> Hypercare: 1 month.</li>`;
+                    <li><i class="fa-solid fa-angle-right"></i> Deployment: ~600 devs/wk per engineer.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> ABM configured for zero-touch provisioning.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> Hypercare phase estimated at 1 month.</li>`;
             }
             document.getElementById('dash-assumptions-list').innerHTML = assumptions;
         }
@@ -464,37 +510,6 @@
             let d = new Date(dateStr);
             d.setMonth(d.getMonth() + monthsToAdd);
             return d.toISOString().split('T')[0];
-        }
-
-        function renderCharts() {
-            if (lineChart) lineChart.destroy();
-            if (donutChart) donutChart.destroy();
-
-            const ctxLine = document.getElementById('lineChart').getContext('2d');
-            lineChart = new Chart(ctxLine, {
-                type: 'line',
-                data: { 
-                    labels: chartGlobalData.labels, 
-                    datasets: [{ label: 'Total FTE', data: chartGlobalData.data, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: {display: false} }, 
-                    scales: { y: { beginAtZero: true, suggestedMax: chartGlobalData.maxVal + 2 } } 
-                }
-            });
-
-            const ctxDonut = document.getElementById('donutChart').getContext('2d');
-            donutChart = new Chart(ctxDonut, {
-                type: 'doughnut',
-                data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { position: 'right', labels: { boxWidth: 8, font: {size: 9} } } } 
-                }
-            });
         }
 
         function calculatePlan() {
@@ -506,6 +521,8 @@
             let totalApps = parseInt(document.getElementById('totalApps').value) || 0;
             
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
+                
+                // 1. Core Timeline Math
                 let assessmentM = 1, foundationM = 3, pilotM = 2, hypercareM = 2; 
                 let actualWeeklyThroughput = batchSize * batchesPerWeek;
                 let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
@@ -516,7 +533,7 @@
                 if (osType === 'mobile' || osType === 'mac') hypercareM = 1;
 
                 let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
-                let visiblePoint = Math.ceil(totalMonths * 0.25); 
+                let visiblePoint = Math.ceil(totalMonths * 0.25); // For Paywall preview
 
                 let startDate = document.getElementById('date-start').value;
                 if(startDate) {
@@ -526,29 +543,31 @@
                     
                     document.getElementById('date-pilot').value = pilotDate;
                     document.getElementById('date-prod').value = prodDate;
-                    document.getElementById('date-hyper').value = hyperDate;
                 }
                 
-                let waveTable = `<tr><th>Wave</th><th>Devices</th><th>Status</th></tr>`;
+                // 2. Migration Waves Table
+                let waveTable = `<tr><th>Wave Name</th><th>Target Devices</th><th>Status</th></tr>`;
                 let remDevs = devices;
                 let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
-                if(pilotSize > 0) { waveTable += `<tr><td>Pilot</td><td>${pilotSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Plnd</td></tr>`; remDevs -= pilotSize; }
+                if(pilotSize > 0) { waveTable += `<tr><td>Pilot Phase</td><td>${pilotSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`; remDevs -= pilotSize; }
                 
                 let waveNum = 1;
                 while(remDevs > 0) { 
-                    if(waveNum === 6 && remDevs > 0) {
+                    if(waveNum === 10 && remDevs > 0) {
                         let remWaves = Math.ceil(remDevs / batchSize);
-                        waveTable += `<tr><td>Waves ${waveNum}-${waveNum + remWaves - 1}</td><td>${remDevs.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Plnd</td></tr>`;
+                        waveTable += `<tr><td>Waves ${waveNum} to ${waveNum + remWaves - 1}</td><td>${remDevs.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`;
                         remDevs = 0; 
                     } else {
                         let bSize = Math.min(batchSize, remDevs);
-                        waveTable += `<tr><td>Wave ${waveNum}</td><td>${bSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Plnd</td></tr>`;
+                        waveTable += `<tr><td>Wave ${waveNum}</td><td>${bSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`;
                         remDevs -= bSize;
                         waveNum++;
                     }
                 }
-                document.getElementById('dash-waves-table').innerHTML = waveTable;
+                // Update views
+                document.getElementById('view-waves-table').innerHTML = waveTable;
 
+                // 3. FTE Matrix Generation
                 function getFTE(peak, role, m) {
                     if (peak === 0) return 0;
                     let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
@@ -569,19 +588,20 @@
                 ];
 
                 let matrixHTML = '<table class="matrix-table">';
-                matrixHTML += `<tr><td style="border: none; background: white;"></td><td colspan="${assessmentM}" class="bg-assess">Assess</td><td colspan="${foundationM}" class="bg-found">Found.</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hyper</td></tr>`;
-                matrixHTML += '<tr style="background: #f8fafc;"><td class="role-name">Role</td>';
+                matrixHTML += `<tr><td style="border: none; background: white;"></td><td colspan="${assessmentM}" class="bg-assess">Assess</td><td colspan="${foundationM}" class="bg-found">Foundation</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hypercare</td></tr>`;
+                matrixHTML += '<tr style="background: #f8fafc;"><td class="role-name">Role Name</td>';
                 for (let i = 1; i <= totalMonths; i++) { matrixHTML += `<td>M${i}</td>`; }
                 matrixHTML += '</tr>';
 
                 let monthlyTotals = new Array(totalMonths + 1).fill(0);
                 let peakFTE = 0, totalPersonMonths = 0;
                 
+                // Clear chart data
                 donutGlobalData = { labels: [], data: [], colors: [] };
 
                 roles.forEach(role => {
                     if(role[1] === 'App' && osType === 'mobile') return;
-                    matrixHTML += `<tr><td class="role-name"><i class="fa-solid fa-user" style="color:${role[3]}; margin-right:5px;"></i>${role[0]}</td>`;
+                    matrixHTML += `<tr><td class="role-name"><i class="fa-solid fa-user" style="color:${role[3]}; margin-right:8px;"></i>${role[0]}</td>`;
                     let rSum = 0;
                     for (let i = 1; i <= totalMonths; i++) {
                         let fteValue = getFTE(role[2], role[1], i);
@@ -604,15 +624,17 @@
                 }
                 chartGlobalData.maxVal = peakFTE;
 
-                matrixHTML += '<tr style="font-weight: bold; background: #f8fafc; color: var(--primary);"><td class="role-name">Total FTE</td>';
+                matrixHTML += '<tr style="font-weight: bold; background: #f8fafc; color: var(--primary); border-top: 2px solid var(--border-color);"><td class="role-name">Total Combined FTE</td>';
                 for (let i = 1; i <= totalMonths; i++) {
                     matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${monthlyTotals[i]}</td>`;
                 }
                 matrixHTML += '</tr></table>';
 
-                document.getElementById('tab2-matrix-container').innerHTML = matrixHTML;
-                document.getElementById('dash-matrix-container').innerHTML = matrixHTML;
+                // Output to Matrix Views
+                document.getElementById('tab2-matrix-container').innerHTML = matrixHTML; // Preview
+                document.getElementById('view-matrix-container').innerHTML = matrixHTML; // Full Dashboard
 
+                // 4. Update Summary Statistics Globally
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
                 let totalBatches = Math.ceil(devices / batchSize);
                 let goLiveMonth = assessmentM + foundationM + pilotM + 1;
@@ -625,7 +647,7 @@
                     document.getElementById('tab-2-actions').style.display = 'flex';
                     
                     document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
-                    document.getElementById('dash-duration').innerText = `${totalMonths} Mo`;
+                    document.getElementById('dash-duration').innerText = `${totalMonths} Months`;
                     document.getElementById('snap-peak').innerText = peakFTE;
                     document.getElementById('dash-peak').innerText = peakFTE;
                     document.getElementById('snap-personmonths').innerText = totalPersonMonths;
@@ -633,6 +655,7 @@
                     document.getElementById('dash-waves').innerText = totalBatches;
                     document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
+                    // 5. Generate Dynamic Gantt Charts
                     let ganttHTML = `<div class="gantt-header">`;
                     for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
                     ganttHTML += `</div>`;
@@ -645,145 +668,48 @@
                     ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
                     ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
                     ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
-                    ganttHTML += drawBar('Migration', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
-                    ganttHTML += drawBar('Hypercare', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
-                    document.getElementById('gantt-container').innerHTML = ganttHTML;
+                    ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
+                    ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
+                    
+                    // Output Gantt to Dashboard and Timeline views
+                    document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
+                    document.getElementById('time-gantt-container').innerHTML = ganttHTML;
                 }
             }
         }
 
-        // --- BULLETPROOF PDF EXPORT WITH STRICT SIZING ---
-        function generatePDF() {
-            let btn = document.getElementById('btn-export');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating PDF...';
-            
-            try {
-                window.scrollTo(0, 0);
+        // -----------------------------------------------------
+        // CHART RENDERING (Called when 'Resources' view opens)
+        // -----------------------------------------------------
+        function renderCharts() {
+            if (lineChart) lineChart.destroy();
+            if (donutChart) donutChart.destroy();
 
-                let overlay = document.createElement('div');
-                overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f8fafc; z-index: 2147483647; display: flex; flex-direction: column; align-items: center; justify-content: center;";
-                overlay.innerHTML = `
-                    <i class="fa-solid fa-file-pdf fa-bounce" style="font-size: 50px; color: #0284c7; margin-bottom: 20px;"></i>
-                    <h2 style="font-family: sans-serif; color: #1e293b; margin: 0;">Generating Landscape Report...</h2>
-                    <p style="font-family: sans-serif; color: #64748b; margin-top: 10px;">Please wait. Formatting in progress.</p>
-                `;
-                document.body.appendChild(overlay);
-
-                let sidebar = document.querySelector('.sidebar');
-                let mainContent = document.querySelector('.main-content');
-                let oldSidebarDisplay = sidebar.style.display;
-                let oldMainDisplay = mainContent.style.display;
-                sidebar.style.display = 'none';
-                mainContent.style.display = 'none';
-
-                let oldOverflow = document.body.style.overflow;
-                let oldHeight = document.body.style.height;
-                let oldBg = document.body.style.background;
-                document.body.style.overflow = 'visible';
-                document.body.style.height = 'auto';
-                document.body.style.background = 'white';
-
-                let renderZone = document.createElement('div');
-                renderZone.id = "pdf-render-zone";
-                // FORCE IT TO TOP LEFT, FIXED WIDTH, NO MARGIN AUTO
-                renderZone.style.cssText = "position: absolute; top: 0; left: 0; width: 1122px; background: white; padding: 25px; box-sizing: border-box; margin: 0;";
-
-                let printStyles = `
-                    <style>
-                        #pdf-render-zone * { box-sizing: border-box; }
-                        #pdf-render-zone .dash-panel { padding: 12px !important; margin-bottom: 0 !important; border: 1px solid #e2e8f0 !important; }
-                        #pdf-render-zone .dash-row-2, #pdf-render-zone .dash-row-3, #pdf-render-zone .dash-row-4 { gap: 12px !important; margin-bottom: 12px !important; }
-                        #pdf-render-zone .summary-grid { gap: 10px !important; margin-bottom: 12px !important; }
-                        #pdf-render-zone .sum-card { padding: 10px !important; border: 1px solid #e2e8f0 !important; }
-                        #pdf-render-zone .dash-panel-title { margin-bottom: 8px !important; font-size: 13px !important; padding-bottom: 6px !important; }
-                        #pdf-render-zone h3 { margin-bottom: 10px !important; font-size: 15px !important; }
-                        #pdf-render-zone .chart-wrapper { height: 140px !important; }
-                        #pdf-render-zone .data-table th, #pdf-render-zone .data-table td { padding: 5px !important; font-size: 10px !important; }
-                        #pdf-render-zone .matrix-table th, #pdf-render-zone .matrix-table td { padding: 4px !important; font-size: 10px !important; }
-                        #pdf-render-zone .check-list { font-size: 11px !important; line-height: 1.5 !important; }
-                        #pdf-render-zone .gantt-track { height: 12px !important; }
-                        #pdf-render-zone .gantt-header { padding-left: 80px !important; margin-bottom: 5px !important; }
-                        #pdf-render-zone .gantt-label { width: 80px !important; font-size: 10px !important; }
-                        #pdf-render-zone .gantt-month { font-size: 10px !important; }
-                    </style>
-                `;
-
-                let headerHTML = `
-                    <div style="border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom:18px; display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div>
-                            <h1 style="color: #0f172a; margin:0; font-size:24px;">Intune Migration Executive Report</h1>
-                            <p style="color: #64748b; margin: 5px 0 0 0; font-size:12px;">Generated by LZebra Planner</p>
-                        </div>
-                        <div>
-                            <img src="./logo.png" style="max-height: 38px; max-width: 180px; object-fit: contain;">
-                        </div>
-                    </div>
-                `;
-
-                let originalDashboard = document.getElementById('printable-dashboard');
-                let clone = originalDashboard.cloneNode(true);
-                renderZone.innerHTML = printStyles + headerHTML;
-                renderZone.appendChild(clone);
-                document.body.appendChild(renderZone);
-
-                let origCanvases = Array.from(originalDashboard.getElementsByTagName('canvas'));
-                let cloneCanvases = Array.from(renderZone.getElementsByTagName('canvas'));
-                
-                for (let i = 0; i < origCanvases.length; i++) {
-                    let img = new Image();
-                    img.src = origCanvases[i].toDataURL('image/png', 1.0);
-                    img.style.width = '100%';
-                    img.style.height = '140px'; 
-                    img.style.objectFit = 'contain';
-                    if(cloneCanvases[i]) {
-                        cloneCanvases[i].parentNode.replaceChild(img, cloneCanvases[i]);
-                    }
+            const ctxLine = document.getElementById('lineChart').getContext('2d');
+            lineChart = new Chart(ctxLine, {
+                type: 'line',
+                data: { 
+                    labels: chartGlobalData.labels, 
+                    datasets: [{ label: 'Total Staff Required', data: chartGlobalData.data, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: {display: false} }, 
+                    scales: { y: { beginAtZero: true, suggestedMax: chartGlobalData.maxVal + 2 } } 
                 }
+            });
 
-                var opt = {
-                    margin:       0.25,
-                    filename:     'Intune_Migration_Dashboard.pdf',
-                    image:        { type: 'jpeg', quality: 1.0 },
-                    html2canvas:  { 
-                        scale: 2, 
-                        useCORS: true, 
-                        width: 1122,       // STRICT WIDTH TO PREVENT WHITE SPACE PADDING
-                        windowWidth: 1122, // STRICT WINDOW WIDTH
-                        scrollY: 0,
-                        scrollX: 0
-                    },
-                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-                };
-
-                setTimeout(() => {
-                    html2pdf().set(opt).from(renderZone).save().then(() => {
-                        document.body.removeChild(renderZone);
-                        document.body.removeChild(overlay);
-                        sidebar.style.display = oldSidebarDisplay;
-                        mainContent.style.display = oldMainDisplay;
-                        document.body.style.overflow = oldOverflow;
-                        document.body.style.height = oldHeight;
-                        document.body.style.background = oldBg;
-                        btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
-                    }).catch(err => {
-                        console.error(err);
-                        if (document.body.contains(renderZone)) document.body.removeChild(renderZone);
-                        if (document.body.contains(overlay)) document.body.removeChild(overlay);
-                        sidebar.style.display = oldSidebarDisplay;
-                        mainContent.style.display = oldMainDisplay;
-                        document.body.style.overflow = oldOverflow;
-                        document.body.style.height = oldHeight;
-                        document.body.style.background = oldBg;
-                        btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
-                        alert("Error generating PDF.");
-                    });
-                }, 500);
-
-            } catch(error) {
-                console.error(error);
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> Download PDF Dashboard'; 
-                alert("Error preparing PDF.");
-            }
+            const ctxDonut = document.getElementById('donutChart').getContext('2d');
+            donutChart = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 11} } } } 
+                }
+            });
         }
     </script>
 </body>
