@@ -1,132 +1,520 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Intune Migration Planner</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intune Migration Planner Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #1e293b;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --bg-light: #f8fafc;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            
+            --c-assess: #e0f2fe;
+            --c-found: #dcfce7;
+            --c-pilot: #fef08a;
+            --c-mig: #f3e8ff;
+            --c-hyp: #ffe4e6;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--text-dark);
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .logo-area { padding: 20px; font-size: 24px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e293b;}
+        .logo-icon { color: #4ade80; }
+        
+        .nav-menu { flex: 1; padding: 20px 0; }
+        .nav-item {
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .nav-item:hover, .nav-item.active {
+            background-color: var(--sidebar-hover);
+            color: white;
+            border-left: 4px solid var(--primary);
+        }
+
+        .snapshot-area {
+            background-color: #0b1121;
+            padding: 20px;
+            border-top: 1px solid #1e293b;
+            font-size: 13px;
+        }
+        .snapshot-title { font-weight: bold; margin-bottom: 15px; font-size: 14px; color: white;}
+        .snap-item { margin-bottom: 15px; }
+        .snap-label { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .snap-value { font-size: 16px; font-weight: 600; color: white; margin-top: 3px;}
+
+        /* Main Content Styling */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h2 { margin: 0; font-size: 20px; }
+        .header-actions button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        .header-actions .btn-primary { background: var(--primary); color: white; border: none; }
+
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        /* Stepper */
+        .stepper { display: flex; gap: 30px; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px;}
+        .step { font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px;}
+        .step.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -17px; padding-bottom: 15px;}
+
+        /* Cards & Inputs */
+        .card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .input-grid { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;}
+        .input-group { flex: 1; min-width: 150px; }
+        .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-dark);}
+        .input-group input, .input-group select {
+            width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; outline: none;
+        }
+        .btn-generate {
+            background: var(--primary); color: white; border: none; padding: 11px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; height: 40px;
+        }
+        .btn-generate:hover { background: var(--primary-hover); }
+
+        .banner { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 12px 15px; border-radius: 4px; font-size: 13px; margin-top: 20px; display: none;}
+        .banner i { color: #3b82f6; margin-right: 5px;}
+
+        /* Matrix Table */
+        .matrix-container { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+        th, td { border: 1px solid var(--border-color); padding: 10px; }
+        .phase-row { font-weight: 600; font-size: 12px; }
+        .month-row { font-weight: 600; background: #f8fafc; }
+        .role-name { text-align: left; font-weight: 500; display: flex; align-items: center; gap: 8px; background: white; position: sticky; left: 0; z-index: 2;}
+        
+        .bg-assess { background-color: var(--c-assess); }
+        .bg-found { background-color: var(--c-found); }
+        .bg-pilot { background-color: var(--c-pilot); }
+        .bg-mig { background-color: var(--c-mig); }
+        .bg-hyp { background-color: var(--c-hyp); }
+
+        .total-row td { font-weight: bold; background-color: #f8fafc; color: var(--primary); border-top: 2px solid var(--border-color);}
+
+        /* Summary Dashboard Cards */
+        .dashboard-metrics { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap;}
+        .metric-card {
+            flex: 1; min-width: 160px; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; align-items: flex-start; gap: 15px;
+        }
+        .metric-icon { font-size: 24px; color: var(--primary); }
+        .metric-data label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; font-weight: 600;}
+        .metric-data .val { font-size: 20px; font-weight: bold; color: var(--text-dark); margin-bottom: 2px;}
+        .metric-data .sub { font-size: 11px; color: var(--text-muted);}
+
+        /* Paywall */
+        .paywall { text-align: center; background: #f8fafc; padding: 40px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-top: 20px; }
+        .paywall h3 { margin-top: 0; color: var(--text-dark); }
+        .locked-cell { color: transparent; text-shadow: 0 0 6px rgba(0,0,0,0.3); user-select: none; background: #f1f5f9; }
+        
+    </style>
 </head>
 <body>
-<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border: 1px solid #e1dfdd; padding: 25px; border-radius: 8px; max-width: 950px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); margin: auto;">
-  <h3 style="margin-top: 0; color: #0078D4; text-align: center;">Intune Migration Resource & Timeline Planner</h3>
-  
-  <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-    <div style="flex: 1; min-width: 170px;">
-      <label for="osType" style="font-size: 14px; font-weight: 600; color: #323130;">Target OS:</label><br>
-      <select id="osType" onchange="toggleAppInput()" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
-        <option value="windows">Windows</option>
-        <option value="mobile">Mobile (iOS/Android)</option>
-        <option value="mac">Mac OS</option>
-      </select>
-    </div>
-    <div style="flex: 1; min-width: 170px;">
-      <label for="totalDevices" style="font-size: 14px; font-weight: 600; color: #323130;">Total Devices:</label><br>
-      <input type="number" id="totalDevices" value="73000" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
-    </div>
-    <div style="flex: 1; min-width: 170px;">
-      <label for="batchSize" style="font-size: 14px; font-weight: 600; color: #323130;">Devices per Batch:</label><br>
-      <input type="number" id="batchSize" value="2500" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
-    </div>
-    <div style="flex: 1; min-width: 170px;">
-      <label for="batchesPerWeek" style="font-size: 14px; font-weight: 600; color: #323130;">Target Batches/Week:</label><br>
-      <input type="number" id="batchesPerWeek" value="1" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
-    </div>
-    <div id="appsContainer" style="flex: 1; min-width: 170px; display: block;">
-      <label for="totalApps" style="font-size: 14px; font-weight: 600; color: #323130;">Total Apps to Package:</label><br>
-      <input type="number" id="totalApps" value="400" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #8a8886; border-radius: 4px; box-sizing: border-box;">
-    </div>
-  </div>
-  
-  <button onclick="calculatePlan()" style="background-color: #0078D4; color: white; font-weight: bold; border: none; padding: 12px 15px; cursor: pointer; border-radius: 4px; width: 100%; font-size: 16px;">Generate FTE Matrix Plan</button>
-  
-  <div id="resultsArea" style="display: none; margin-top: 25px; padding-top: 20px; border-top: 2px solid #e1dfdd;">
-    <div id="mathContextBanner" style="display: none; background-color: #e1f0fa; border-left: 4px solid #0078d4; padding: 10px 15px; margin-bottom: 20px; font-size: 13px; color: #323130;"></div>
-    <h4>Month-by-Month Phase & FTE Matrix:</h4>
-    <div id="matrixTableContainer" style="overflow-x: auto; margin-bottom: 20px;"></div>
-    
-    <div id="paywallSection" style="display: none; text-align: center; background-color: #f8f9fa; padding: 25px; border: 1px dashed #c8c6c4;">
-      <h3>🔒 Unlock the Full Data</h3>
-      <p style="color: #605e5c;">Get the complete end-to-end month-by-month resource breakdown for just ₹99.99.</p>
-      
-      <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
-    </div>
-  </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo-area">
+            <i class="fa-solid fa-server logo-icon"></i> LZebra
+        </div>
+        <div class="nav-menu">
+            <a href="#" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
+            <a href="#" class="nav-item active"><i class="fa-solid fa-table-list"></i> Planner</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-timeline"></i> Timeline</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-users"></i> Resources</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-circle-exclamation"></i> Risk</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-file-export"></i> Export</a>
+        </div>
         
-        // UPDATED: Check for the presence of payment_id instead of status=paid
-        if (urlParams.has('payment_id')) {
-            localStorage.setItem('planner_unlocked', 'true');
-            // Clean the URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-            alert("Payment detected! Unlocking data...");
-        }
+        <!-- DYNAMIC PROJECT SNAPSHOT -->
+        <div class="snapshot-area">
+            <div class="snapshot-title">Project Snapshot</div>
+            <div class="snap-item">
+                <div class="snap-label">Platform</div>
+                <div class="snap-value" id="snap-platform">-</div>
+            </div>
+            <div class="snap-item">
+                <div class="snap-label">Total Devices</div>
+                <div class="snap-value" id="snap-devices">-</div>
+            </div>
+            <div class="snap-item">
+                <div class="snap-label">Total Duration</div>
+                <div class="snap-value" id="snap-duration">-</div>
+            </div>
+            <div class="snap-item">
+                <div class="snap-label">Peak FTE</div>
+                <div class="snap-value" id="snap-peak">-</div>
+            </div>
+            <div class="snap-item">
+                <div class="snap-label">Total FTE (Person Months)</div>
+                <div class="snap-value" id="snap-personmonths">-</div>
+            </div>
+        </div>
+    </div>
 
-        if(localStorage.getItem('planner_unlocked') === 'true') {
-            document.getElementById('paywallSection').style.display = 'none';
-            // Trigger calculation automatically if unlocked
-            calculatePlan(); 
-        }
-        toggleAppInput();
-    });
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- HEADER -->
+        <div class="header">
+            <h2>Intune Migration Resource & Timeline Planner</h2>
+            <div class="header-actions">
+                <button onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i> Reset All</button>
+                <button class="btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Project</button>
+            </div>
+        </div>
 
-    function toggleAppInput() {
-      let os = document.getElementById('osType').value;
-      document.getElementById('appsContainer').style.display = (os === 'mobile') ? 'none' : 'block';
-    }
+        <div class="content-scroll">
+            
+            <div class="stepper">
+                <div class="step active"><i class="fa-regular fa-lightbulb"></i> 1. Platform & Inputs</div>
+                <div class="step"><i class="fa-solid fa-sliders"></i> 2. Planner Setup</div>
+                <div class="step"><i class="fa-regular fa-square-check"></i> 3. Review & Generate</div>
+            </div>
 
-    function calculatePlan() {
-      localStorage.setItem('planner_osType', document.getElementById('osType').value);
-      localStorage.setItem('planner_totalDevices', document.getElementById('totalDevices').value);
-      localStorage.setItem('planner_batchSize', document.getElementById('batchSize').value);
-      localStorage.setItem('planner_batchesPerWeek', document.getElementById('batchesPerWeek').value);
-      localStorage.setItem('planner_totalApps', document.getElementById('totalApps').value);
+            <!-- INPUTS SECTION -->
+            <div class="card">
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>Select Platform</label>
+                        <select id="osType" onchange="toggleAppInput()">
+                            <option value="windows">Windows</option>
+                            <option value="mobile">Mobile (iOS/Android)</option>
+                            <option value="mac">Mac OS</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Total Devices</label>
+                        <input type="number" id="totalDevices" value="73000">
+                    </div>
+                    <div class="input-group">
+                        <label>Devices per Batch</label>
+                        <input type="number" id="batchSize" value="2500">
+                    </div>
+                    <div class="input-group">
+                        <label>Target Batches / Week</label>
+                        <input type="number" id="batchesPerWeek" value="1">
+                    </div>
+                    <div class="input-group" id="appsContainer">
+                        <label>Total Apps to Package</label>
+                        <input type="number" id="totalApps" value="400">
+                    </div>
+                    <button class="btn-generate" onclick="calculatePlan()"><i class="fa-solid fa-chart-column"></i> Generate FTE Matrix Plan</button>
+                </div>
+                <div id="mathContextBanner" class="banner"></div>
+            </div>
 
-      let osType = document.getElementById('osType').value;
-      let devices = parseInt(document.getElementById('totalDevices').value);
-      let batchSize = parseInt(document.getElementById('batchSize').value);
-      let batchesPerWeek = parseInt(document.getElementById('batchesPerWeek').value);
-      let totalApps = parseInt(document.getElementById('totalApps').value) || 0;
-      let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
-      
-      if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
-        let assessmentM = 1, foundationM = 3, pilotM = 2, hypercareM = 2; 
-        let actualWeeklyThroughput = batchSize * batchesPerWeek;
-        let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
-        let migrationM = Math.max(1, Math.ceil(migrationWeeks / 4.33));
-        let deploy = (osType === 'mobile') ? Math.max(1, Math.ceil(actualWeeklyThroughput / 60)) : Math.max(1, Math.ceil(actualWeeklyThroughput / 600));
-        let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((foundationM * 4.33) * 100)));
-        let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
-        let visiblePoint = Math.ceil(totalMonths * 0.25); 
+            <!-- RESULTS SECTION -->
+            <div id="resultsArea" style="display: none;">
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div style="padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: white;">
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-dark);"><i class="fa-regular fa-calendar-days" style="color: var(--primary); margin-right: 8px;"></i> Month-by-Month Phase & FTE Matrix</h3>
+                    </div>
+                    
+                    <div class="matrix-container" id="matrixTableContainer">
+                        <!-- Table renders here -->
+                    </div>
+                </div>
 
-        function getFTE(peak, role, m) {
-            let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
-            let mult = (role === 'Arch') ? ((phase !== "Migration" && phase !== "Hypercare") ? 1.0 : 0.5) : (role === 'End') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'App') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0 : 1.0) : (role === 'Gpo') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'Dep') ? ((phase === "Pilot") ? 0.6 : (phase === "Migration") ? 1.0 : 0) : ((phase === "Hypercare") ? 1.0 : 0);
-            return Math.max(1, Math.round(peak * mult));
-        }
+                <!-- BOTTOM SUMMARY DASHBOARD CARDS -->
+                <div class="dashboard-metrics" id="dashboardMetrics" style="display: none;">
+                    <div class="metric-card">
+                        <i class="fa-regular fa-user metric-icon"></i>
+                        <div class="metric-data">
+                            <label>Peak FTE</label>
+                            <div class="val" id="card-peak">0</div>
+                            <div class="sub">Maximum required staff</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fa-solid fa-users metric-icon"></i>
+                        <div class="metric-data">
+                            <label>Total FTE (Person Months)</label>
+                            <div class="val" id="card-personmonths">0</div>
+                            <div class="sub">Sum of all monthly FTEs</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fa-regular fa-calendar metric-icon"></i>
+                        <div class="metric-data">
+                            <label>Project Duration</label>
+                            <div class="val" id="card-duration">0 Months</div>
+                            <div class="sub">Start to Finish</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fa-solid fa-water metric-icon"></i>
+                        <div class="metric-data">
+                            <label>Total Batches</label>
+                            <div class="val" id="card-batches">0</div>
+                            <div class="sub">Total migration waves</div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fa-solid fa-rocket metric-icon"></i>
+                        <div class="metric-data">
+                            <label>Estimated Go-Live</label>
+                            <div class="val" id="card-golive">Month 0</div>
+                            <div class="sub">Start of User Migration</div>
+                        </div>
+                    </div>
+                </div>
 
-        let matrixHTML = '<table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; border: 1px solid #a19f9d;">';
-        matrixHTML += '<tr style="background-color: #f3f2f1; font-weight: bold;"><td>Role</td>';
-        for (let i = 1; i <= totalMonths; i++) { matrixHTML += '<td>M'+i+'</td>'; }
-        matrixHTML += '</tr>';
+                <!-- RAZORPAY PAYWALL SECTION -->
+                <div id="paywallSection" class="paywall">
+                    <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Data</h3>
+                    <p>The remaining 75% of your project plan and summary metrics are hidden. Get the complete end-to-end month-by-month resource breakdown for just ₹99.99.</p>
+                    
+                    <!-- YOUR LIVE RAZORPAY BUTTON SNIPPET -->
+                    <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TDnOBYrAcZ8o1i" async> </script> </form>
+                </div>
+            </div>
+            
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 20px;"><strong>Note:</strong> FTEs are calculated based on industry best practices and may vary based on environment complexity, tooling, and team experience.</p>
+        </div>
+    </div>
 
-        const roles = [['Intune Architects', 'Arch', Math.max(1, Math.ceil(devices / 35000))], ['Endpoint Engineers', 'End', Math.max(1, Math.ceil(devices / 18000))], ['App Packaging', 'App', appFTE], ['GPO Experts', 'Gpo', Math.max(1, Math.ceil(devices / 20000))], ['Deployment', 'Dep', deploy], ['Hypercare', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800))]];
-        
-        roles.forEach(role => {
-            if(role[1] === 'App' && osType === 'mobile') return;
-            matrixHTML += '<tr><td style="text-align: left;">'+role[0]+'</td>';
-            for (let i = 1; i <= totalMonths; i++) {
-                matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td>🔒</td>' : '<td>'+getFTE(role[2], role[1], i)+'</td>';
+    <!-- APPLICATION LOGIC -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check for the Razorpay Payment ID to unlock
+            if (urlParams.has('payment_id')) {
+                localStorage.setItem('planner_unlocked', 'true');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                alert("Payment detected! Unlocking your dashboard...");
             }
-            matrixHTML += '</tr>';
+
+            // Restore previously typed inputs
+            if(localStorage.getItem('planner_totalDevices')) {
+              document.getElementById('osType').value = localStorage.getItem('planner_osType') || 'windows';
+              document.getElementById('totalDevices').value = localStorage.getItem('planner_totalDevices');
+              document.getElementById('batchSize').value = localStorage.getItem('planner_batchSize');
+              document.getElementById('batchesPerWeek').value = localStorage.getItem('planner_batchesPerWeek');
+              document.getElementById('totalApps').value = localStorage.getItem('planner_totalApps');
+            }
+
+            if(localStorage.getItem('planner_unlocked') === 'true') {
+                document.getElementById('paywallSection').style.display = 'none';
+                calculatePlan(); // Auto-generate if they already paid
+            }
+            toggleAppInput();
         });
 
-        matrixHTML += '</table>';
-        document.getElementById('matrixTableContainer').innerHTML = matrixHTML;
-        document.getElementById('paywallSection').style.display = isUnlocked ? 'none' : 'block';
-        document.getElementById('resultsArea').style.display = 'block';
-      }
-    }
-  </script>
-</div>
+        function toggleAppInput() {
+          let os = document.getElementById('osType').value;
+          document.getElementById('appsContainer').style.display = (os === 'mobile') ? 'none' : 'block';
+        }
+
+        function calculatePlan() {
+          // Save state
+          localStorage.setItem('planner_osType', document.getElementById('osType').value);
+          localStorage.setItem('planner_totalDevices', document.getElementById('totalDevices').value);
+          localStorage.setItem('planner_batchSize', document.getElementById('batchSize').value);
+          localStorage.setItem('planner_batchesPerWeek', document.getElementById('batchesPerWeek').value);
+          localStorage.setItem('planner_totalApps', document.getElementById('totalApps').value);
+
+          let osType = document.getElementById('osType').value;
+          let devices = parseInt(document.getElementById('totalDevices').value);
+          let batchSize = parseInt(document.getElementById('batchSize').value);
+          let batchesPerWeek = parseInt(document.getElementById('batchesPerWeek').value);
+          let totalApps = parseInt(document.getElementById('totalApps').value) || 0;
+          let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
+          
+          if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
+            
+            // Core phase timing
+            let assessmentM = 1, foundationM = 3, pilotM = 2, hypercareM = 2; 
+            
+            let actualWeeklyThroughput = batchSize * batchesPerWeek;
+            let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
+            let migrationM = Math.max(1, Math.ceil(migrationWeeks / 4.33));
+            
+            // OS specific math
+            let deploy = (osType === 'mobile') ? Math.max(1, Math.ceil(actualWeeklyThroughput / 60)) : Math.max(1, Math.ceil(actualWeeklyThroughput / 600));
+            let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((foundationM * 4.33) * 100)));
+            if (osType === 'mobile' || osType === 'mac') hypercareM = 1;
+
+            let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
+            let visiblePoint = Math.ceil(totalMonths * 0.25); 
+
+            // Update Banner Context
+            let bannerEl = document.getElementById('mathContextBanner');
+            bannerEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> <strong>${osType.charAt(0).toUpperCase() + osType.slice(1)} Calculation:</strong> Deployment scales to meet target batches. Hypercare set to ${hypercareM} months. ${osType==='mobile' ? 'App packaging ignored.' : 'App packaging factored.'}`;
+            bannerEl.style.display = 'block';
+
+            // FTE Generation Logic
+            function getFTE(peak, role, m) {
+                if (peak === 0) return 0;
+                let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
+                let mult = (role === 'Arch') ? ((phase !== "Migration" && phase !== "Hypercare") ? 1.0 : 0.5) : (role === 'End') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'App') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0 : 1.0) : (role === 'Gpo') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'Dep') ? ((phase === "Pilot") ? 0.6 : (phase === "Migration") ? 1.0 : 0) : ((phase === "Hypercare") ? 1.0 : 0);
+                return Math.max(1, Math.round(peak * mult));
+            }
+
+            // Define Roles and Peak Quantities
+            const roles = [
+                ['<i class="fa-regular fa-user" style="color:#64748b;"></i> Intune Architects', 'Arch', Math.max(1, Math.ceil(devices / 35000))], 
+                ['<i class="fa-solid fa-laptop-code" style="color:#64748b;"></i> Endpoint Engineers', 'End', Math.max(1, Math.ceil(devices / 18000))], 
+                ['<i class="fa-solid fa-box-open" style="color:#64748b;"></i> App Packaging', 'App', appFTE], 
+                ['<i class="fa-solid fa-shield-halved" style="color:#64748b;"></i> GPO Experts', 'Gpo', Math.max(1, Math.ceil(devices / 20000))], 
+                ['<i class="fa-solid fa-truck-fast" style="color:#64748b;"></i> Deployment', 'Dep', deploy], 
+                ['<i class="fa-solid fa-headset" style="color:#64748b;"></i> Hypercare / Support', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800))]
+            ];
+
+            // Build Matrix Table
+            let matrixHTML = '<table>';
+            
+            // Phase Row (Colored headers)
+            matrixHTML += '<tr class="phase-row"><td style="border: none; background: white;"></td>';
+            if (assessmentM > 0) matrixHTML += `<td colspan="${assessmentM}" class="bg-assess">Assessment</td>`;
+            if (foundationM > 0) matrixHTML += `<td colspan="${foundationM}" class="bg-found">Foundation</td>`;
+            if (pilotM > 0) matrixHTML += `<td colspan="${pilotM}" class="bg-pilot">Pilot</td>`;
+            if (migrationM > 0) matrixHTML += `<td colspan="${migrationM}" class="bg-mig">Migration Waves</td>`;
+            if (hypercareM > 0) matrixHTML += `<td colspan="${hypercareM}" class="bg-hyp">Hypercare</td>`;
+            matrixHTML += '</tr>';
+
+            // Month Row
+            matrixHTML += '<tr class="month-row"><td class="role-name" style="padding-left: 20px;">Role</td>';
+            for (let i = 1; i <= totalMonths; i++) { matrixHTML += `<td>M${i}</td>`; }
+            matrixHTML += '</tr>';
+
+            // Track Totals
+            let monthlyTotals = new Array(totalMonths + 1).fill(0);
+            let peakFTE = 0;
+            let totalPersonMonths = 0;
+
+            // Generate Role Rows
+            roles.forEach(role => {
+                if(role[1] === 'App' && osType === 'mobile') return;
+                
+                matrixHTML += `<tr><td class="role-name" style="padding-left: 20px;">${role[0]}</td>`;
+                for (let i = 1; i <= totalMonths; i++) {
+                    let fteValue = getFTE(role[2], role[1], i);
+                    monthlyTotals[i] += fteValue; // Add to column total
+                    
+                    if(i > visiblePoint && !isUnlocked) {
+                        matrixHTML += '<td class="locked-cell">🔒</td>';
+                    } else {
+                        matrixHTML += `<td>${fteValue}</td>`;
+                    }
+                }
+                matrixHTML += '</tr>';
+            });
+
+            // Calculate overall metrics from the totals array
+            for(let m = 1; m <= totalMonths; m++) {
+                totalPersonMonths += monthlyTotals[m];
+                if(monthlyTotals[m] > peakFTE) peakFTE = monthlyTotals[m];
+            }
+
+            // Generate Total FTE Row
+            matrixHTML += '<tr class="total-row"><td class="role-name" style="padding-left: 20px;">Total FTE</td>';
+            for (let i = 1; i <= totalMonths; i++) {
+                if(i > visiblePoint && !isUnlocked) {
+                    matrixHTML += '<td class="locked-cell">🔒</td>';
+                } else {
+                    matrixHTML += `<td>${monthlyTotals[i]}</td>`;
+                }
+            }
+            matrixHTML += '</tr></table>';
+
+            // Inject Table
+            document.getElementById('matrixTableContainer').innerHTML = matrixHTML;
+
+            // Update Dashboard Summary Cards & Sidebar Snapshot
+            let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
+            let goliveMonth = assessmentM + foundationM + pilotM + 1;
+            let totalBatches = Math.ceil(devices / batchSize);
+
+            // Snapshot Update
+            document.getElementById('snap-platform').innerText = platformName;
+            document.getElementById('snap-devices').innerText = devices.toLocaleString();
+            
+            // Dashboard Cards Update (Masked if unpaid)
+            document.getElementById('card-duration').innerText = `${totalMonths} Months`;
+            document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
+            document.getElementById('card-batches').innerText = totalBatches;
+            document.getElementById('card-golive').innerText = `Month ${goliveMonth}`;
+
+            if(isUnlocked) {
+                document.getElementById('card-peak').innerText = peakFTE;
+                document.getElementById('card-personmonths').innerText = totalPersonMonths;
+                document.getElementById('snap-peak').innerText = peakFTE;
+                document.getElementById('snap-personmonths').innerText = totalPersonMonths;
+            } else {
+                document.getElementById('card-peak').innerHTML = '🔒';
+                document.getElementById('card-personmonths').innerHTML = '🔒';
+                document.getElementById('snap-peak').innerText = 'Locked';
+                document.getElementById('snap-personmonths').innerText = 'Locked';
+            }
+
+            // Show sections
+            document.getElementById('resultsArea').style.display = 'block';
+            document.getElementById('dashboardMetrics').style.display = 'flex';
+            document.getElementById('paywallSection').style.display = isUnlocked ? 'none' : 'block';
+          } else {
+            alert("Please enter valid parameters to generate the plan.");
+          }
+        }
+    </script>
 </body>
 </html>
