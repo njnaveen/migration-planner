@@ -6,7 +6,6 @@
     <title>Intune Migration Planner Dashboard</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Replaced PDF Engine with SheetJS for Excel Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -117,7 +116,6 @@
 </head>
 <body>
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="logo-area">
             <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
@@ -141,7 +139,6 @@
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
     <div class="main-content">
         <div class="header">
             <h2>Intune Migration Planner</h2>
@@ -382,7 +379,7 @@
             <div id="tab-5" class="tab-content">
                 <div class="card" style="max-width: 500px; margin: 0 auto;">
                     <div class="card-header"><i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Generate Excel Data Report</div>
-                    <p style="color: var(--text-muted); font-size: 13px;">Export the complete raw data into a multi-tab Microsoft Excel file so you can easily modify and integrate the plan into your own costing trackers.</p>
+                    <p style="color: var(--text-muted); font-size: 13px;">Export the complete raw data and dashboard summary into a multi-tab Microsoft Excel file so you can easily modify and integrate the plan into your own costing trackers.</p>
                     <button class="btn-action" id="btn-export" style="width: 100%; justify-content: center; margin-top: 15px; background-color: #10b981;" onclick="generateExcel()">
                         <i class="fa-solid fa-download"></i> Download Excel Workbook
                     </button>
@@ -403,6 +400,7 @@
         
         // Window object to hold clean raw data for the Excel export
         window.excelData = {
+            dashboard: [], // NEW EXCEL DASHBOARD TAB
             summary: [],
             matrix: [],
             waves: []
@@ -675,17 +673,38 @@
                     document.getElementById('dash-waves').innerText = totalBatches;
                     document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                    // Update Excel Summary Data
-                    window.excelData.summary = [
-                        ['Metric', 'Value'],
-                        ['Platform Target', platformName],
-                        ['Total Devices', devices],
-                        ['Project Duration', totalMonths + ' Months'],
-                        ['Peak FTE Staffing', peakFTE],
-                        ['Total Effort (Person Months)', totalPersonMonths],
-                        ['Total Migration Waves', totalBatches],
-                        ['Estimated Go-Live', 'Month ' + goLiveMonth],
-                        ['Overall Risk Level', 'Medium']
+                    // --- EXCEL DASHBOARD LOGIC (ASCII Timeline & Text Grid) ---
+                    function buildAsciiBar(startM, dur, total) {
+                        let bar = "";
+                        for(let i=1; i<=total; i++) {
+                            if(i >= startM && i < startM + dur) bar += "████";
+                            else bar += "----";
+                        }
+                        return bar;
+                    }
+
+                    window.excelData.dashboard = [
+                        ["INTUNE MIGRATION EXECUTIVE DASHBOARD"],
+                        [],
+                        ["PROJECT SUMMARY", "", "", "RESOURCE METRICS"],
+                        ["Target Platform:", platformName, "", "Peak FTE Staffing:", peakFTE],
+                        ["Total Devices:", devices, "", "Total Person Months:", totalPersonMonths],
+                        ["Total Batches:", totalBatches, "", "Estimated Go-Live:", "Month " + goLiveMonth],
+                        ["Project Duration:", totalMonths + " Months", "", "Overall Risk:", "Medium"],
+                        [],
+                        ["MIGRATION TIMELINE"],
+                        ["Phase", "Timeline (" + totalMonths + " Months)", "Duration"],
+                        ["Assessment", buildAsciiBar(1, assessmentM, totalMonths), assessmentM + " Mo"],
+                        ["Foundation", buildAsciiBar(1+assessmentM, foundationM, totalMonths), foundationM + " Mo"],
+                        ["Pilot", buildAsciiBar(1+assessmentM+foundationM, pilotM, totalMonths), pilotM + " Mo"],
+                        ["Migration Waves", buildAsciiBar(1+assessmentM+foundationM+pilotM, migrationM, totalMonths), migrationM + " Mo"],
+                        ["Hypercare", buildAsciiBar(totalMonths-hypercareM+1, hypercareM, totalMonths), hypercareM + " Mo"],
+                        [],
+                        ["TOP RISKS & DEPENDENCIES", "", "", "KEY ASSUMPTIONS"],
+                        ["- [Risk] Application compatibility", "", "", "- Deployment: ~600 devices/week per FTE"],
+                        ["- [Risk] GPO to Intune complexity", "", "", "- App packaging: ~100 apps/week per FTE"],
+                        ["- [Dependency] Intune Tenant Setup", "", "", "- Hypercare duration: " + hypercareM + " month(s)"],
+                        ["- [Dependency] Azure AD Ready", "", "", "- Resource availability is full-time"]
                     ];
 
                     let ganttHTML = `<div class="gantt-header">`;
@@ -713,30 +732,27 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating Excel...';
             
             try {
-                // Initialize Workbook
                 let wb = XLSX.utils.book_new();
 
-                // Create Summary Sheet
-                let wsSummary = XLSX.utils.aoa_to_sheet(window.excelData.summary);
-                wsSummary['!cols'] = [{ wch: 25 }, { wch: 20 }]; // Set column widths
-                XLSX.utils.book_append_sheet(wb, wsSummary, "Project Summary");
+                // Create the Dashboard Sheet (Sheet 1)
+                let wsDash = XLSX.utils.aoa_to_sheet(window.excelData.dashboard);
+                wsDash['!cols'] = [{ wch: 25 }, { wch: 60 }, { wch: 10 }, { wch: 25 }, { wch: 40 }]; 
+                XLSX.utils.book_append_sheet(wb, wsDash, "Executive Dashboard");
 
-                // Create Matrix Sheet
+                // Create Matrix Sheet (Sheet 2)
                 let wsMatrix = XLSX.utils.aoa_to_sheet(window.excelData.matrix);
-                let matrixCols = [{ wch: 20 }]; // First col width
+                let matrixCols = [{ wch: 20 }]; 
                 for(let i=1; i<window.excelData.matrix[0].length; i++) matrixCols.push({ wch: 10 });
                 wsMatrix['!cols'] = matrixCols;
                 XLSX.utils.book_append_sheet(wb, wsMatrix, "FTE Resource Matrix");
 
-                // Create Waves Sheet
+                // Create Waves Sheet (Sheet 3)
                 let wsWaves = XLSX.utils.aoa_to_sheet(window.excelData.waves);
-                wsWaves['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }];
+                wsWaves['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }];
                 XLSX.utils.book_append_sheet(wb, wsWaves, "Migration Waves");
 
-                // Trigger Download
                 XLSX.writeFile(wb, "Intune_Migration_Plan.xlsx");
                 
-                // Reset Button
                 setTimeout(() => {
                     btn.innerHTML = '<i class="fa-solid fa-download"></i> Download Excel Workbook'; 
                 }, 1000);
