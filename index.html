@@ -74,7 +74,7 @@
         .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
         .dot-green { background: #10b981; } .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; }
 
-        /* DASHBOARD CARDS */
+        /* DASHBOARD CARDS & LAYOUTS */
         .dash-panel { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 100%; box-sizing: border-box;}
         .dash-panel-title { font-size: 15px; font-weight: bold; margin: 0 0 15px 0; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
         
@@ -89,6 +89,11 @@
         .sum-data .val { font-size: 24px; font-weight: bold; color: var(--text-dark); line-height: 1.1;}
         .sum-data .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px;}
 
+        /* Full Dashboard Layout Grids */
+        .dash-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .dash-row-3 { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 20px; margin-bottom: 20px; }
+        .dash-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+
         /* MATRICES & CHARTS */
         .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
         .matrix-table th, .matrix-table td { border: 1px solid var(--border-color); padding: 8px; }
@@ -100,8 +105,9 @@
         .matrix-table .bg-hyp { background: #ffe4e6; }
 
         .chart-wrapper { position: relative; height: 250px; width: 100%; }
+        .chart-wrapper-small { position: relative; height: 200px; width: 100%; }
 
-        .gantt-wrapper { font-size: 12px; margin-top: 20px;}
+        .gantt-wrapper { font-size: 12px; margin-top: 10px;}
         .gantt-header { display: flex; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; padding-left: 100px; color: var(--text-muted);}
         .gantt-month { flex: 1; text-align: center; }
         .gantt-row { display: flex; align-items: center; margin-bottom: 10px; }
@@ -265,7 +271,6 @@
                                 <li><input type="checkbox" checked> Apple Business Manager (ABM)</li>
                                 <li><input type="checkbox" checked> ADE / VPP Configured</li>
                                 <li><input type="checkbox" checked> Android Enterprise</li>
-                                <!-- Explicit config based on requirements -->
                                 <li><input type="checkbox" checked> Shared Devices (No User Affinity)</li>
                             </ul>
                             <ul class="check-list" id="config-mac" style="display:none;">
@@ -285,9 +290,10 @@
             </div>
 
             <!-- ==========================================
-                 VIEW 2: EXECUTIVE DASHBOARD
+                 VIEW 2: FULL EXECUTIVE DASHBOARD
                  ========================================== -->
             <div id="view-dashboard" class="main-view">
+                
                 <div class="summary-grid">
                     <div class="sum-card">
                         <i class="fa-solid fa-users sum-icon sum-icon-blue"></i>
@@ -315,9 +321,71 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header"><i class="fa-solid fa-bullseye"></i> High-Level Migration Path</div>
-                    <div class="gantt-wrapper" id="dash-gantt-container"></div>
+                <!-- Matrix and Trend Line Row -->
+                <div class="dash-row-2">
+                    <div class="dash-panel" style="overflow-x: auto;">
+                        <h4 class="dash-panel-title">Month-by-Month Phase & FTE Matrix</h4>
+                        <div id="dash-matrix-container"></div>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE Trend</h4>
+                        <div class="chart-wrapper-small">
+                            <canvas id="lineChartDash"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline, Donut, and Waves Row -->
+                <div class="dash-row-3">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE by Role (%)</h4>
+                        <div class="chart-wrapper-small">
+                            <canvas id="donutChartDash"></canvas>
+                        </div>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">High-Level Migration Timeline</h4>
+                        <div class="gantt-wrapper" id="dash-gantt-container"></div>
+                    </div>
+                    <div class="dash-panel" style="overflow-y: auto; max-height: 275px;">
+                        <h4 class="dash-panel-title">Migration Waves Plan</h4>
+                        <table class="data-table" id="dash-waves-table"></table>
+                    </div>
+                </div>
+
+                <!-- Risks and Recommendations Row -->
+                <div class="dash-row-4">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Top Risks</h4>
+                        <ul class="check-list">
+                            <li><span class="status-dot dot-red"></span> Application compatibility and packaging</li>
+                            <li><span class="status-dot dot-yellow"></span> Complex GPO to Intune policy mapping</li>
+                            <li><span class="status-dot dot-yellow"></span> End-user adoption friction</li>
+                            <li><span class="status-dot dot-green"></span> Network bandwidth constraints</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Dependencies</h4>
+                        <ul class="check-list">
+                            <li><i class="fa-solid fa-check"></i> Intune Tenant Configured</li>
+                            <li><i class="fa-solid fa-check"></i> Azure AD Environment Ready</li>
+                            <li><span style="color:#f59e0b; margin-right:6px;"><i class="fa-solid fa-spinner"></i></span> Device Enrollment Profiles</li>
+                            <li><i class="fa-solid fa-check"></i> Packaging Lab Provisioned</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Key Assumptions</h4>
+                        <ul class="check-list" id="dash-assumptions-list" style="color: var(--text-muted);"></ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Recommendations</h4>
+                        <ul class="check-list" style="color: var(--text-muted);">
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Initiate app packaging early.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Migrate policies in waves.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Diverse hardware pilot group.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Strong change management.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -352,13 +420,13 @@
                     <div class="dash-panel">
                         <h4 class="dash-panel-title">FTE Total Trend (Per Month)</h4>
                         <div class="chart-wrapper">
-                            <canvas id="lineChart"></canvas>
+                            <canvas id="lineChartRes"></canvas>
                         </div>
                     </div>
                     <div class="dash-panel">
                         <h4 class="dash-panel-title">FTE Effort by Role (%)</h4>
                         <div class="chart-wrapper">
-                            <canvas id="donutChart"></canvas>
+                            <canvas id="donutChartRes"></canvas>
                         </div>
                     </div>
                 </div>
@@ -389,7 +457,7 @@
                     </div>
                     <div class="dash-panel">
                         <h4 class="dash-panel-title">Planning Assumptions</h4>
-                        <ul class="check-list" id="dash-assumptions-list" style="color: var(--text-muted);"></ul>
+                        <ul class="check-list" id="view-assumptions-list" style="color: var(--text-muted);"></ul>
                     </div>
                     <div class="dash-panel">
                         <h4 class="dash-panel-title">Recommendations</h4>
@@ -408,8 +476,12 @@
 
     <!-- APPLICATION LOGIC -->
     <script>
-        let lineChart = null;
-        let donutChart = null;
+        // Dual chart instances to allow rendering on multiple tabs simultaneously
+        let lineChartDash = null;
+        let donutChartDash = null;
+        let lineChartRes = null;
+        let donutChartRes = null;
+
         let chartGlobalData = { labels: [], data: [], maxVal: 0 };
         let donutGlobalData = { labels: [], data: [], colors: [] };
 
@@ -484,8 +556,8 @@
             };
             document.getElementById('app-header-title').innerText = titles[viewId];
 
-            // Render Chart.js graphs ONLY when the Resources tab opens (to fix size bugs)
-            if (viewId === 'resources') {
+            // Render Chart.js graphs dynamically when tabs open
+            if (viewId === 'dashboard' || viewId === 'resources') {
                 setTimeout(() => { renderCharts(); }, 50); 
             }
         }
@@ -534,7 +606,10 @@
                     <li><i class="fa-solid fa-angle-right"></i> ABM configured for zero-touch provisioning.</li>
                     <li><i class="fa-solid fa-angle-right"></i> Hypercare phase estimated at 1 month.</li>`;
             }
+            
+            // Push to both Assumption Lists (Dashboard & Risks view)
             document.getElementById('dash-assumptions-list').innerHTML = assumptions;
+            document.getElementById('view-assumptions-list').innerHTML = assumptions;
         }
 
         function addMonths(dateStr, monthsToAdd) {
@@ -594,7 +669,9 @@
                         waveNum++;
                     }
                 }
-                // Output Waves
+                
+                // Output Waves to both Dashboard and Timeline Views
+                document.getElementById('dash-waves-table').innerHTML = waveTable;
                 document.getElementById('view-waves-table').innerHTML = waveTable;
 
                 // 3. FTE Matrix Generation
@@ -637,7 +714,7 @@
                         let fteValue = getFTE(role[2], role[1], i);
                         monthlyTotals[i] += fteValue; 
                         rSum += fteValue;
-                        // Preview logic
+                        // Preview logic masking
                         if (document.querySelector('.tab-content.active') && document.querySelector('.tab-content.active').id === 'tab-2') {
                             matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${fteValue}</td>`;
                         } else {
@@ -670,8 +747,9 @@
                 matrixHTML += '</tr></table>';
 
                 // Output to Matrix Views
-                document.getElementById('tab2-matrix-container').innerHTML = matrixHTML; // Preview tab
-                document.getElementById('view-matrix-container').innerHTML = matrixHTML; // Full Dashboard
+                document.getElementById('tab2-matrix-container').innerHTML = matrixHTML; // Wizard Preview tab
+                document.getElementById('dash-matrix-container').innerHTML = matrixHTML; // Full Dashboard
+                document.getElementById('view-matrix-container').innerHTML = matrixHTML; // Resources View
 
                 // 4. Update Summary Statistics Globally
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
@@ -719,37 +797,59 @@
         }
 
         // -----------------------------------------------------
-        // CHART RENDERING (Called when 'Resources' view opens)
+        // CHART RENDERING (Handles Multiple Canvas Destinations)
         // -----------------------------------------------------
         function renderCharts() {
-            if (lineChart) lineChart.destroy();
-            if (donutChart) donutChart.destroy();
+            // Destroy all existing charts to prevent hover glitches
+            if (lineChartDash) lineChartDash.destroy();
+            if (donutChartDash) donutChartDash.destroy();
+            if (lineChartRes) lineChartRes.destroy();
+            if (donutChartRes) donutChartRes.destroy();
 
-            const ctxLine = document.getElementById('lineChart').getContext('2d');
-            lineChart = new Chart(ctxLine, {
-                type: 'line',
-                data: { 
-                    labels: chartGlobalData.labels, 
-                    datasets: [{ label: 'Total Staff Required', data: chartGlobalData.data, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: {display: false} }, 
-                    scales: { y: { beginAtZero: true, suggestedMax: chartGlobalData.maxVal + 2 } } 
-                }
-            });
+            const lineOptions = { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: {display: false} }, 
+                scales: { y: { beginAtZero: true, suggestedMax: chartGlobalData.maxVal + 2 } } 
+            };
 
-            const ctxDonut = document.getElementById('donutChart').getContext('2d');
-            donutChart = new Chart(ctxDonut, {
-                type: 'doughnut',
-                data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 11} } } } 
-                }
-            });
+            const donutOptions = { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 11} } } } 
+            };
+
+            // Render Dashboard Charts
+            if(document.getElementById('lineChartDash')) {
+                lineChartDash = new Chart(document.getElementById('lineChartDash').getContext('2d'), {
+                    type: 'line',
+                    data: { labels: chartGlobalData.labels, datasets: [{ label: 'Total Staff Required', data: chartGlobalData.data, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] },
+                    options: lineOptions
+                });
+            }
+            if(document.getElementById('donutChartDash')) {
+                donutChartDash = new Chart(document.getElementById('donutChartDash').getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] },
+                    options: donutOptions
+                });
+            }
+
+            // Render Resource Tab Charts
+            if(document.getElementById('lineChartRes')) {
+                lineChartRes = new Chart(document.getElementById('lineChartRes').getContext('2d'), {
+                    type: 'line',
+                    data: { labels: chartGlobalData.labels, datasets: [{ label: 'Total Staff Required', data: chartGlobalData.data, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] },
+                    options: lineOptions
+                });
+            }
+            if(document.getElementById('donutChartRes')) {
+                donutChartRes = new Chart(document.getElementById('donutChartRes').getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] },
+                    options: donutOptions
+                });
+            }
         }
     </script>
 </body>
