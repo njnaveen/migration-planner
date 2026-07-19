@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intune Migration Planner Dashboard</title>
+    <title>Intune Migration Planner - DEV</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root {
@@ -14,8 +15,8 @@
             --primary: #0284c7; --primary-hover: #0369a1;
             --bg-light: #f1f5f9; --text-dark: #1e293b; --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --c-assess: #93c5fd; --c-found: #86efac; --c-pilot: #fde047; 
-            --c-mig: #c084fc; --c-hyp: #fca5a5;
+            --c-inception: #e0f2fe; --c-discovery: #bae6fd; --c-design: #fed7aa; 
+            --c-prep: #fef08a; --c-pilot: #fde047; --c-mig: #c084fc; --c-post: #fca5a5;
         }
 
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
@@ -111,12 +112,15 @@
         .gantt-task-col { text-align: left !important; width: 320px; min-width: 320px; font-weight: 500; position: sticky; left: 0; background: white; z-index: 4; }
         .gantt-phase-row td { font-weight: bold; background: #f1f5f9 !important; color: #0f172a; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
         .gantt-phase-row .gantt-task-col { z-index: 6; } 
-        .gantt-bar-cell { height: 18px; width: 100%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
-        .gantt-bar-cell.assess { background-color: #93c5fd; }
-        .gantt-bar-cell.found { background-color: #86efac; }
-        .gantt-bar-cell.pilot { background-color: #fde047; }
-        .gantt-bar-cell.mig { background-color: #c084fc; }
-        .gantt-bar-cell.hyp { background-color: #fca5a5; }
+        .gantt-bar-cell { height: 18px; width: 100%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); border-radius: 4px; }
+        
+        .gantt-bar-cell.inception { background-color: var(--c-inception); }
+        .gantt-bar-cell.discovery { background-color: var(--c-discovery); }
+        .gantt-bar-cell.design { background-color: var(--c-design); }
+        .gantt-bar-cell.prep { background-color: var(--c-prep); }
+        .gantt-bar-cell.pilot { background-color: var(--c-pilot); }
+        .gantt-bar-cell.mig { background-color: var(--c-mig); }
+        .gantt-bar-cell.post { background-color: var(--c-post); }
 
         .chart-wrapper { position: relative; height: 250px; width: 100%; }
         .chart-wrapper-small { position: relative; height: 200px; width: 100%; }
@@ -409,8 +413,11 @@
                  ========================================== -->
             <div id="view-gantt" class="main-view">
                 <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; height: calc(100vh - 120px);">
-                    <div class="card-header" style="padding: 20px; border-bottom: 1px solid var(--border-color); margin: 0; background: white; z-index: 10;">
-                        <i class="fa-solid fa-list-check"></i> OS-Specific Project Gantt Plan
+                    <div class="card-header" style="padding: 20px; border-bottom: 1px solid var(--border-color); margin: 0; background: white; z-index: 10; display: flex; justify-content: space-between;">
+                        <div><i class="fa-solid fa-list-check"></i> OS-Specific Project Gantt Plan</div>
+                        <button onclick="downloadGanttExcel()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px;">
+                            <i class="fa-solid fa-file-excel"></i> Download Excel
+                        </button>
                     </div>
                     <div style="overflow: auto; flex: 1; padding: 0;" id="detailed-gantt-container">
                         <!-- Table generated dynamically based on OS -->
@@ -513,6 +520,9 @@
 
         let chartGlobalData = { labels: [], data: [], maxVal: 0 };
         let donutGlobalData = { labels: [], data: [], colors: [] };
+        
+        // Global object to store Gantt data for Excel Export
+        let excelGanttData = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             // Check for URL parameters passed from Lzebra.com Embed Widget
@@ -659,21 +669,26 @@
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
                 
                 // 1. Core Timeline Math
-                let assessmentM = 1, foundationM = 3, pilotM = 2, hypercareM = 2; 
+                let inceptionM = 1, discoveryM = 1, designM = 1, prepM = 1, pilotM = 1, hypercareM = 2;
+                
+                // Scale phases depending on OS complexity
+                if(osType === 'windows') { prepM = 2; discoveryM = 2; }
+                if(osType === 'mobile' || osType === 'mac') { hypercareM = 1; }
+
                 let actualWeeklyThroughput = batchSize * batchesPerWeek;
                 let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
                 let migrationM = Math.max(1, Math.ceil(migrationWeeks / 4.33));
                 
                 let deploy = (osType === 'mobile') ? Math.max(1, Math.ceil(actualWeeklyThroughput / 60)) : Math.max(1, Math.ceil(actualWeeklyThroughput / 600));
-                let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((foundationM * 4.33) * 100)));
-                if (osType === 'mobile' || osType === 'mac') hypercareM = 1;
-
-                let totalMonths = assessmentM + foundationM + pilotM + migrationM + hypercareM;
+                // Simplified app calculation mapping to the full timeline length
+                let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((prepM * 4.33) * 100)));
+                
+                let totalMonths = inceptionM + discoveryM + designM + prepM + pilotM + migrationM + hypercareM;
                 let visiblePoint = Math.ceil(totalMonths * 0.25); // For Paywall preview
 
                 let startDate = document.getElementById('date-start').value;
                 if(startDate) {
-                    let pilotDate = addMonths(startDate, assessmentM + foundationM);
+                    let pilotDate = addMonths(startDate, inceptionM + discoveryM + designM + prepM);
                     let prodDate = addMonths(pilotDate, pilotM);
                     
                     document.getElementById('date-pilot').value = pilotDate;
@@ -703,11 +718,27 @@
                 document.getElementById('dash-waves-table').innerHTML = waveTable;
                 document.getElementById('view-waves-table').innerHTML = waveTable;
 
-                // 3. FTE Matrix Generation
+                // 3. NEW FTE Matrix Generation (Mapped to the 7-Phase WBS)
                 function getFTE(peak, role, m) {
                     if (peak === 0) return 0;
-                    let phase = (m <= assessmentM) ? "Assessment" : (m <= assessmentM + foundationM) ? "Foundation" : (m <= assessmentM + foundationM + pilotM) ? "Pilot" : (m <= totalMonths - hypercareM) ? "Migration" : "Hypercare";
-                    let mult = (role === 'Arch') ? ((phase !== "Migration" && phase !== "Hypercare") ? 1.0 : 0.5) : (role === 'End') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'App') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0 : 1.0) : (role === 'Gpo') ? ((phase === "Assessment") ? 0.5 : (phase === "Hypercare") ? 0.75 : 1.0) : (role === 'Dep') ? ((phase === "Pilot") ? 0.6 : (phase === "Migration") ? 1.0 : 0) : ((phase === "Hypercare") ? 1.0 : 0);
+                    
+                    let phase = "";
+                    if (m <= inceptionM) phase = "Inception";
+                    else if (m <= inceptionM + discoveryM) phase = "Discovery";
+                    else if (m <= inceptionM + discoveryM + designM) phase = "Design";
+                    else if (m <= inceptionM + discoveryM + designM + prepM) phase = "Prep";
+                    else if (m <= inceptionM + discoveryM + designM + prepM + pilotM) phase = "Pilot";
+                    else if (m <= totalMonths - hypercareM) phase = "Migration";
+                    else phase = "Hypercare";
+
+                    let mult = 0;
+                    if (role === 'Arch') mult = (phase === "Migration" || phase === "Hypercare") ? 0.5 : 1.0;
+                    if (role === 'End') mult = (phase === "Inception" || phase === "Hypercare") ? 0.5 : 1.0;
+                    if (role === 'App') mult = (phase === "Inception" || phase === "Hypercare" || phase === "Migration") ? 0 : 1.0;
+                    if (role === 'Gpo') mult = (phase === "Inception" || phase === "Hypercare") ? 0.5 : 1.0;
+                    if (role === 'Dep') mult = (phase === "Pilot") ? 0.5 : (phase === "Migration") ? 1.0 : 0;
+                    if (role === 'Hyp') mult = (phase === "Hypercare" || phase === "Migration") ? 1.0 : 0;
+
                     return Math.max(1, Math.round(peak * mult));
                 }
 
@@ -724,7 +755,7 @@
                 ];
 
                 let matrixHTML = '<table class="matrix-table">';
-                matrixHTML += `<tr><td style="border: none; background: white;"></td><td colspan="${assessmentM}" class="bg-assess">Assess</td><td colspan="${foundationM}" class="bg-found">Foundation</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hypercare</td></tr>`;
+                matrixHTML += `<tr><td style="border: none; background: white;"></td><td colspan="${inceptionM+discoveryM}" class="bg-assess">Discovery & Design</td><td colspan="${designM+prepM}" class="bg-found">Preparation</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hypercare</td></tr>`;
                 matrixHTML += '<tr style="background: #f8fafc;"><td class="role-name">Role Name</td>';
                 for (let i = 1; i <= totalMonths; i++) { matrixHTML += `<td>M${i}</td>`; }
                 matrixHTML += '</tr>';
@@ -783,13 +814,12 @@
                 // 4. Update Summary Statistics Globally
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
                 let totalBatches = Math.ceil(devices / batchSize);
-                let goLiveMonth = assessmentM + foundationM + pilotM + 1;
+                let goLiveMonth = inceptionM + discoveryM + designM + prepM + pilotM + 1;
 
                 document.getElementById('snap-platform').innerText = platformName;
                 document.getElementById('snap-devices').innerText = devices.toLocaleString();
 
                 if(isUnlocked) {
-                    // Fail-safe to hide the section just in case the CSS is missed
                     document.getElementById('paywallSection').style.display = 'none';
                     document.getElementById('tab-2-actions').style.display = 'flex';
                     
@@ -802,7 +832,7 @@
                     document.getElementById('dash-waves').innerText = totalBatches;
                     document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                    // 5. Generate Dynamic Gantt Charts
+                    // 5. Generate Simple Dashboard Gantt Charts
                     let ganttHTML = `<div class="gantt-header">`;
                     for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
                     ganttHTML += `</div>`;
@@ -812,43 +842,54 @@
                         let W = (dur / totalMonths) * 100;
                         return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
                     }
-                    ganttHTML += drawBar('Assessment', 1, assessmentM, '#93c5fd');
-                    ganttHTML += drawBar('Foundation', 1+assessmentM, foundationM, '#86efac');
-                    ganttHTML += drawBar('Pilot', 1+assessmentM+foundationM, pilotM, '#fde047');
-                    ganttHTML += drawBar('Migration Waves', 1+assessmentM+foundationM+pilotM, migrationM, '#c084fc');
-                    ganttHTML += drawBar('Hypercare Support', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
+                    ganttHTML += drawBar('Disc/Design', 1, inceptionM+discoveryM+designM, '#93c5fd');
+                    ganttHTML += drawBar('Preparation', 1+inceptionM+discoveryM+designM, prepM, '#86efac');
+                    ganttHTML += drawBar('Pilot', 1+inceptionM+discoveryM+designM+prepM, pilotM, '#fde047');
+                    ganttHTML += drawBar('Migration', 1+inceptionM+discoveryM+designM+prepM+pilotM, migrationM, '#c084fc');
+                    ganttHTML += drawBar('Hypercare', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
                     
                     // Output Gantt to Dashboard and Timeline views
                     document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
                     document.getElementById('time-gantt-container').innerHTML = ganttHTML;
 
-                    // 6. GENERATE DETAILED OS-AWARE GANTT CHART (TAB 3)
+                    // 6. GENERATE THE DEEP WBS OS-SPECIFIC GANTT CHART (TAB 3)
                     let phaseTasks = [];
                     if (osType === 'windows') {
                         phaseTasks = [
-                            { phase: "Assessment", class: "assess", duration: assessmentM, tasks: ["Project Kickoff", "Device & Application Inventory", "GPO & Policy Assessment", "Hardware Compatibility Check"] },
-                            { phase: "Foundation", class: "found", duration: foundationM, tasks: ["Migration Strategy Sign-off", "Intune & Azure AD Config", "Autopilot & Co-management Setup", "App Packaging & Conversion"] },
-                            { phase: "Pilot", class: "pilot", duration: pilotM, tasks: ["Pilot User Selection", "Pilot Group Deployment", "Issue Triage & Resolution", "UAT Sign-off"] },
-                            { phase: "Migration Waves", class: "mig", duration: migrationM, tasks: ["Wave 1: IT & Early Adopters", "Wave 2: Standard Users", "Wave 3: Standard Users", "Wave 4+: VIP & Kiosk Devices"] },
-                            { phase: "Hypercare", class: "hyp", duration: hypercareM, tasks: ["Validation & Compliance Checking", "Hypercare Helpdesk Support", "Knowledge Transfer to Ops", "Project Closure"] }
+                            { phase: "Inception", class: "inception", duration: inceptionM, tasks: ["Project Kickoff", "Stakeholder Identification", "Governance & RACI", "Project Charter Approval"] },
+                            { phase: "Discovery", class: "discovery", duration: discoveryM, tasks: ["Device Inventory", "Application Inventory", "User Persona Analysis", "Current SCCM/AD Assessment", "GPO & Policy Assessment", "Hardware Compatibility Check"] },
+                            { phase: "Design", class: "design", duration: designM, tasks: ["Migration Strategy Sign-off", "Wave Planning", "Autopilot Enrollment Design", "Co-management Architecture", "Security Baseline Design", "Conditional Access Design"] },
+                            { phase: "Preparation", class: "prep", duration: prepM, tasks: ["Intune Tenant Config", "Azure AD Join Setup", "Autopilot Profiles Creation", "GPO to Intune Translation", "Application Packaging", "Pilot Readiness Sign-off"] },
+                            { phase: "Pilot/UAT", class: "pilot", duration: pilotM, tasks: ["Pilot User Selection", "Pilot Group Deployment", "Issue Triage & Resolution", "UAT Sign-off"] },
+                            { phase: "Production Migration", class: "mig", duration: migrationM, tasks: ["Wave 1: IT & Early Adopters", "Wave 2: Standard Users", "Wave 3: Standard Users", "Wave 4+: VIP & Kiosk Devices"] },
+                            { phase: "Post Migration", class: "post", duration: hypercareM, tasks: ["Validation & Compliance Checking", "Hypercare Helpdesk Support", "Knowledge Transfer to Ops", "Project Closure"] }
                         ];
                     } else if (osType === 'mobile') {
                         phaseTasks = [
-                            { phase: "Assessment", class: "assess", duration: assessmentM, tasks: ["Project Kickoff", "Mobile Device & App Inventory", "Airwatch / SOTI State Assessment", "User Persona & Usage Analysis"] },
-                            { phase: "Foundation", class: "found", duration: foundationM, tasks: ["Migration Strategy Sign-off", "ABM / Android Enterprise Integration", "Compliance & Security Policies", "Device Enrollment Profiles Setup"] },
-                            { phase: "Pilot", class: "pilot", duration: pilotM, tasks: ["Pilot User Selection", "Pilot Device Migration", "Issue Triage & Resolution", "UAT Sign-off"] },
-                            { phase: "Migration Waves", class: "mig", duration: migrationM, tasks: ["Wave 1: IT & Early Adopters", "Wave 2: Standard Users", "Wave 3+: Standard Users", "Shared Devices (No Affinity) Rollout"] },
-                            { phase: "Hypercare", class: "hyp", duration: hypercareM, tasks: ["Validation & Compliance Checking", "Hypercare Helpdesk Support", "Knowledge Transfer to Ops", "Project Closure"] }
+                            { phase: "Inception", class: "inception", duration: inceptionM, tasks: ["Project Kickoff", "Stakeholder Identification", "Governance & RACI", "Project Charter Approval"] },
+                            { phase: "Discovery", class: "discovery", duration: discoveryM, tasks: ["Device Inventory", "Application Inventory", "User Persona Analysis", "Current MDM Assessment", "ABM/Zero-touch Review", "Certificate Review"] },
+                            { phase: "Design", class: "design", duration: designM, tasks: ["Migration Strategy", "Wave Planning", "Enrollment Design", "Security Baseline", "Conditional Access Design", "App Deployment Design"] },
+                            { phase: "Preparation", class: "prep", duration: prepM, tasks: ["Intune Tenant Validation", "ABM Integration", "Android Enterprise Setup", "Dynamic Groups", "Compliance Policies", "Configuration Profiles", "App Configuration", "Pilot Readiness"] },
+                            { phase: "Pilot/UAT", class: "pilot", duration: pilotM, tasks: ["Pilot User Selection", "Pilot Migration", "Issue Resolution", "UAT Sign-off"] },
+                            { phase: "Production Migration", class: "mig", duration: migrationM, tasks: ["Wave 1", "Wave 2", "Wave 3", "Wave 4", "VIP Users", "Shared Devices", "Kiosk Devices"] },
+                            { phase: "Post Migration", class: "post", duration: hypercareM, tasks: ["Validation", "Hypercare Support", "Reporting", "Knowledge Transfer", "Project Closure"] }
                         ];
                     } else { // Mac
                         phaseTasks = [
-                            { phase: "Assessment", class: "assess", duration: assessmentM, tasks: ["Project Kickoff", "Mac Device & App Inventory", "Current Jamf/MDM Assessment", "User Persona Analysis"] },
-                            { phase: "Foundation", class: "found", duration: foundationM, tasks: ["Migration Strategy Sign-off", "ABM & ADE Configuration", "Platform SSO & FileVault Setup", "Shell Scripts & App Packaging"] },
-                            { phase: "Pilot", class: "pilot", duration: pilotM, tasks: ["Pilot User Selection", "Pilot Device Migration", "Issue Triage & Resolution", "UAT Sign-off"] },
-                            { phase: "Migration Waves", class: "mig", duration: migrationM, tasks: ["Wave 1: IT & Early Adopters", "Wave 2: Standard Users", "Wave 3+: Standard Users", "VIP & Developer Macs Rollout"] },
-                            { phase: "Hypercare", class: "hyp", duration: hypercareM, tasks: ["Validation & Compliance Checking", "Hypercare Helpdesk Support", "Knowledge Transfer to Ops", "Project Closure"] }
+                            { phase: "Inception", class: "inception", duration: inceptionM, tasks: ["Project Kickoff", "Stakeholder Identification", "Governance & RACI", "Project Charter Approval"] },
+                            { phase: "Discovery", class: "discovery", duration: discoveryM, tasks: ["Mac Device Inventory", "Application Inventory", "User Persona Analysis", "Current Jamf/MDM Assessment", "ABM/ADE Review"] },
+                            { phase: "Design", class: "design", duration: designM, tasks: ["Migration Strategy", "Wave Planning", "ADE Enrollment Design", "Platform SSO Design", "Security Baseline", "Conditional Access Design"] },
+                            { phase: "Preparation", class: "prep", duration: prepM, tasks: ["Intune Tenant Validation", "ABM Integration", "Platform SSO Setup", "FileVault Configuration", "PPPC & Sys Extensions", "Shell Script Creation", "App Packaging", "Pilot Readiness"] },
+                            { phase: "Pilot/UAT", class: "pilot", duration: pilotM, tasks: ["Pilot User Selection", "Pilot Migration", "Issue Resolution", "UAT Sign-off"] },
+                            { phase: "Production Migration", class: "mig", duration: migrationM, tasks: ["Wave 1", "Wave 2", "Wave 3", "VIP & Exec Macs", "Developer Macs"] },
+                            { phase: "Post Migration", class: "post", duration: hypercareM, tasks: ["Validation", "Hypercare Support", "Reporting", "Knowledge Transfer", "Project Closure"] }
                         ];
                     }
+
+                    // Reset Excel Export Data array
+                    excelGanttData = [
+                        ['Phase', 'Task / Milestone', 'Duration (Months)', 'Timeline Mapping']
+                    ];
 
                     let detailedGanttHTML = `<table class="gantt-excel-table">`;
                     detailedGanttHTML += `<thead><tr><th class="gantt-task-col">Project Phase / Task Name</th>`;
@@ -859,19 +900,28 @@
                     phaseTasks.forEach(p => {
                         // Render Phase Header Row
                         detailedGanttHTML += `<tr class="gantt-phase-row"><td class="gantt-task-col">${p.phase}</td>`;
+                        
+                        let excelPhaseRow = [p.phase, '', p.duration + ' Months'];
+
                         for(let i=1; i<=totalMonths; i++) {
                             // Light background for the phase duration
                             if (i >= currentM && i < currentM + p.duration) {
                                 detailedGanttHTML += `<td style="background: rgba(0,0,0,0.03);"></td>`;
+                                excelPhaseRow.push('M' + i);
                             } else {
                                 detailedGanttHTML += `<td></td>`;
+                                excelPhaseRow.push('');
                             }
                         }
                         detailedGanttHTML += `</tr>`;
+                        excelGanttData.push(excelPhaseRow);
 
                         // Render Tasks overlapping through the phase duration
                         p.tasks.forEach(task => {
                             detailedGanttHTML += `<tr><td class="gantt-task-col" style="padding-left: 25px;"><i class="fa-solid fa-angle-right" style="color: #94a3b8; margin-right: 8px;"></i>${task}</td>`;
+                            
+                            let excelTaskRow = ['', task, ''];
+
                             for(let i=1; i<=totalMonths; i++) {
                                 if(i >= currentM && i < currentM + p.duration) {
                                     // Add rounded corners at the start and end of the phase bars
@@ -881,11 +931,14 @@
                                     else if(i === currentM + p.duration - 1) bRadius = "0 4px 4px 0";
 
                                     detailedGanttHTML += `<td style="padding: 6px;"><div class="gantt-bar-cell ${p.class}" style="border-radius: ${bRadius};"></div></td>`;
+                                    excelTaskRow.push('■'); // Mark the block for Excel
                                 } else {
                                     detailedGanttHTML += `<td></td>`;
+                                    excelTaskRow.push('');
                                 }
                             }
                             detailedGanttHTML += `</tr>`;
+                            excelGanttData.push(excelTaskRow);
                         });
 
                         currentM += p.duration;
@@ -897,7 +950,7 @@
         }
 
         // -----------------------------------------------------
-        // CHART RENDERING (Handles Multiple Canvas Destinations)
+        // CHART RENDERING 
         // -----------------------------------------------------
         function renderCharts() {
             // Destroy all existing charts to prevent hover glitches
@@ -949,6 +1002,43 @@
                     data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] },
                     options: donutOptions
                 });
+            }
+        }
+
+        // -----------------------------------------------------
+        // GANTT EXCEL EXPORT
+        // -----------------------------------------------------
+        function downloadGanttExcel() {
+            try {
+                // Initialize Workbook
+                let wb = XLSX.utils.book_new();
+
+                // Generate Top Header Row dynamically based on duration
+                let headerRow = ['Phase', 'Task / Milestone', 'Duration'];
+                let durationLength = excelGanttData[0].length - 4; // Subtract the first 4 columns
+                for (let i = 1; i <= durationLength + 1; i++) {
+                    headerRow.push('M' + i);
+                }
+
+                // Inject Header
+                excelGanttData[0] = headerRow;
+
+                // Create Sheet
+                let wsGantt = XLSX.utils.aoa_to_sheet(excelGanttData);
+                
+                // Format Column Widths
+                let colWidths = [{ wch: 25 }, { wch: 45 }, { wch: 15 }]; 
+                for(let i=0; i < durationLength + 1; i++) colWidths.push({ wch: 5 }); // Timeline cols
+                wsGantt['!cols'] = colWidths;
+
+                XLSX.utils.book_append_sheet(wb, wsGantt, "Project Gantt Plan");
+
+                // Trigger Download
+                XLSX.writeFile(wb, "Intune_Migration_Gantt_Plan.xlsx");
+
+            } catch(error) {
+                console.error("Excel Generation Error:", error);
+                alert("An error occurred while generating the Excel file.");
             }
         }
     </script>
