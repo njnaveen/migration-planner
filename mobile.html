@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intune Migration Planner - DEV</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --sidebar-bg: #0f172a; --sidebar-hover: #1e293b;
+            --primary: #0284c7; --primary-hover: #0369a1;
+            --bg-light: #f1f5f9; --text-dark: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --c-assess: #93c5fd; --c-found: #86efac; --c-pilot: #fde047; 
+            --c-mig: #c084fc; --c-hyp: #fca5a5;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); }
+        
+        /* STRICT PAYWALL OVERRIDES */
+        body.is-unlocked #paywallSection { display: none !important; }
+        body.is-unlocked #tab-2-actions { display: flex !important; }
+
+        /* MOBILE OVERLAY */
+        #mobile-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+        #mobile-menu-btn { display: none; background: none; border: none; font-size: 20px; color: var(--text-dark); cursor: pointer; margin-right: 15px; padding: 0; }
+
+        /* SIDEBAR */
+        .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 100;}
+        .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121;}
+        .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
+        
+        .nav-menu { flex: 1; padding: 15px 0; overflow-y: auto; }
+        .nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 12px; color: #cbd5e1; text-decoration: none; transition: all 0.2s; cursor: pointer; font-size: 14px;}
+        .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); color: white; border-left: 4px solid var(--primary); }
+
+        .snapshot-area { background-color: #0b1121; padding: 15px 20px; border-top: 1px solid #1e293b; font-size: 12px; }
+        .snapshot-title { font-weight: bold; margin-bottom: 10px; font-size: 13px; color: white;}
+        .snap-item { margin-bottom: 10px; }
+        .snap-label { color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .snap-value { font-size: 14px; font-weight: 600; color: white; margin-top: 2px;}
+
+        /* MAIN CONTENT AREA */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background-color: var(--bg-light); z-index: 10; width: 100%;}
+        .header { padding: 15px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 18px; display: flex; align-items: center;}
+        .header-actions button { padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border-color); background: white; cursor: pointer; font-weight: 500; margin-left: 10px; font-size: 13px;}
+        .header-actions .btn-primary { background: var(--primary); color: white; border: none; }
+        .content-scroll { flex: 1; overflow-y: auto; padding: 25px; }
+
+        /* VIEW TOGGLING */
+        .main-view { display: none; animation: fadeIn 0.3s; }
+        .main-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* SHARED COMPONENTS */
+        .card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .card-header { font-size: 15px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
+        .input-grid { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;}
+        .input-group { flex: 1; min-width: 140px; }
+        .input-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-dark);}
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; outline: none; font-size: 13px;}
+        .btn-action { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px;}
+        .btn-action:hover { background: var(--primary-hover); }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; margin-top: 15px;}
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .check-list { list-style: none; padding: 0; margin: 0; font-size: 13px; line-height: 1.8; }
+        .check-list li { display: flex; align-items: center; gap: 8px; }
+        .check-list i { color: #10b981; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        .data-table th, .data-table td { border: 1px solid var(--border-color); padding: 10px; }
+        .data-table th { background: #f8fafc; font-weight: 600; }
+        .data-table input[type="date"] { width: 100%; font-family: inherit; font-size: 13px; cursor: pointer; border:none; outline:none; background:transparent;}
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .dot-green { background: #10b981; } .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; }
+
+        /* DASHBOARD CARDS & LAYOUTS */
+        .dash-panel { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 100%; box-sizing: border-box;}
+        .dash-panel-title { font-size: 15px; font-weight: bold; margin: 0 0 15px 0; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
+        
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+        .sum-card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);}
+        .sum-icon { font-size: 28px; padding: 12px; border-radius: 8px; }
+        .sum-icon-blue { color: #3b82f6; background: #eff6ff; }
+        .sum-icon-green { color: #10b981; background: #dcfce7; }
+        .sum-icon-purple { color: #a855f7; background: #f3e8ff; }
+        .sum-icon-orange { color: #f59e0b; background: #fef3c7; }
+        .sum-data label { display: block; font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 3px;}
+        .sum-data .val { font-size: 24px; font-weight: bold; color: var(--text-dark); line-height: 1.1;}
+        .sum-data .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px;}
+
+        /* Full Dashboard Layout Grids */
+        .dash-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .dash-row-3 { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 20px; margin-bottom: 20px; }
+        .dash-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+
+        /* MATRICES & CHARTS */
+        .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+        .matrix-table th, .matrix-table td { border: 1px solid var(--border-color); padding: 8px; }
+        .matrix-table .role-name { text-align: left; font-weight: 500; background: white; }
+        .matrix-table .bg-assess { background: #e0f2fe; }
+        .matrix-table .bg-found { background: #dcfce7; }
+        .matrix-table .bg-pilot { background: #fef08a; }
+        .matrix-table .bg-mig { background: #f3e8ff; }
+        .matrix-table .bg-hyp { background: #ffe4e6; }
+
+        /* GANTT EXCEL TABLE */
+        .gantt-excel-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .gantt-excel-table th, .gantt-excel-table td { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 10px; text-align: center; }
+        .gantt-excel-table th { background: #f8fafc; font-weight: 600; color: var(--text-dark); position: sticky; top: 0; z-index: 5; border-bottom: 2px solid var(--border-color); }
+        .gantt-task-col { text-align: left !important; width: 320px; min-width: 320px; font-weight: 500; position: sticky; left: 0; background: white; z-index: 4; }
+        .gantt-phase-row td { font-weight: bold; background: #f1f5f9 !important; color: #0f172a; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        .gantt-phase-row .gantt-task-col { z-index: 6; } 
+        .gantt-bar-cell { height: 18px; width: 100%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); border-radius: 4px; }
+        
+        .gantt-bar-cell.inception { background-color: #e0f2fe; }
+        .gantt-bar-cell.discovery { background-color: #bae6fd; }
+        .gantt-bar-cell.design { background-color: #fed7aa; }
+        .gantt-bar-cell.prep { background-color: #fef08a; }
+        .gantt-bar-cell.pilot { background-color: #fde047; }
+        .gantt-bar-cell.mig { background-color: #c084fc; }
+        .gantt-bar-cell.post { background-color: #fca5a5; }
+
+        .chart-wrapper { position: relative; height: 250px; width: 100%; }
+        .chart-wrapper-small { position: relative; height: 200px; width: 100%; }
+
+        .gantt-wrapper { font-size: 12px; margin-top: 10px;}
+        .gantt-header { display: flex; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; padding-left: 100px; color: var(--text-muted);}
+        .gantt-month { flex: 1; text-align: center; }
+        .gantt-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .gantt-label { width: 100px; font-weight: 500; }
+        .gantt-track { flex: 1; background: #f1f5f9; height: 16px; border-radius: 8px; position: relative; }
+        .gantt-bar { position: absolute; height: 100%; border-radius: 8px; }
+
+        /* DETAILED SPREADSHEET GANTT CSS */
+        .excel-grid { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .excel-grid th { background: #fef08a; color: #0f172a; font-weight: bold; padding: 10px 8px; border: 1px solid #cbd5e1; position: sticky; top: 0; z-index: 5; text-align: center;}
+        .excel-grid td { padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; white-space: nowrap;}
+        
+        .excel-grid .col-code { position: sticky; left: 0; background: white; z-index: 4; font-weight: bold; color: #64748b;}
+        .excel-grid .col-phase { position: sticky; left: 60px; background: white; z-index: 4; font-weight: bold; text-align: left;}
+        .excel-grid .col-task { position: sticky; left: 180px; background: white; z-index: 4; text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;}
+        
+        .gantt-fill { background-color: #facc15; border-radius: 2px; height: 16px; width: 100%; }
+
+        .paywall { text-align: center; background: #f8fafc; padding: 40px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-top: 20px; }
+        .paywall h3 { margin-top: 0; color: var(--text-dark); font-size: 18px;}
+        .locked-cell { color: transparent; text-shadow: 0 0 5px rgba(0,0,0,0.4); user-select: none; background: #f1f5f9; }
+        
+        /* PLANNER STEPPER */
+        .stepper { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
+        .step { font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px; font-size: 14px; transition: 0.2s; }
+        .step:hover { color: var(--primary); }
+        .step.active { color: var(--primary); border-bottom: 3px solid var(--primary); margin-bottom: -13px; padding-bottom: 10px;}
+        .tab-content { display: none; animation: fadeIn 0.2s; }
+        .tab-content.active { display: block; }
+
+        /* =======================================================
+           MOBILE RESPONSIVENESS (MEDIA QUERIES)
+           ======================================================= */
+        @media (max-width: 950px) {
+            #mobile-menu-btn { display: inline-block; }
+            #mobile-overlay.active { display: block; }
+            
+            /* Hide Sidebar behind screen edge */
+            .sidebar { position: fixed; left: -260px; height: 100vh; transition: left 0.3s ease; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
+            .sidebar.open { left: 0; }
+            
+            .header { padding: 15px; }
+            .header h2 { font-size: 16px; }
+            .content-scroll { padding: 15px; }
+            
+            /* Collapse all side-by-side grids into 1 single column */
+            .grid-2, .dash-row-2, .dash-row-3, .dash-row-4 { grid-template-columns: 1fr; }
+            
+            /* Collapse Top Summary cards into 2 columns (or 1 on very small phones) */
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            
+            /* Stack form inputs */
+            .input-group { min-width: 100%; }
+            .flex-between { flex-direction: column; gap: 15px; align-items: stretch; }
+            .btn-action { width: 100%; justify-content: center;}
+
+            /* Reformat Wizard Stepper to wrap gracefully */
+            .stepper { flex-wrap: wrap; gap: 10px; border-bottom: none; padding-bottom: 0; margin-bottom: 15px;}
+            .step { width: 100%; border-bottom: 1px solid var(--border-color); padding: 10px; margin-bottom: 0 !important; }
+            .step.active { border-bottom: 2px solid var(--primary); }
+        }
+
+        @media (max-width: 500px) {
+            .summary-grid { grid-template-columns: 1fr; }
+            .header-actions button { padding: 6px 10px; font-size: 12px; }
+            .header-actions button span { display: none; /* Hides the word "Reset" on tiny screens to save space */ }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MOBILE OVERLAY BACKGROUND -->
+    <div id="mobile-overlay" onclick="toggleMobileMenu()"></div>
+
+    <!-- INTERACTIVE SIDEBAR NAVIGATION -->
+    <div class="sidebar">
+        <div class="logo-area">
+            <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
+        </div>
+        
+        <div class="nav-menu">
+            <a class="nav-item active" id="nav-planner" onclick="switchMainView('planner')"><i class="fa-solid fa-sliders"></i> Planner Setup</a>
+            <a class="nav-item" id="nav-dashboard" onclick="switchMainView('dashboard')"><i class="fa-solid fa-chart-pie"></i> Executive Dashboard</a>
+            <a class="nav-item" id="nav-gantt" onclick="switchMainView('gantt')"><i class="fa-solid fa-list-check"></i> Project Gantt Plan</a>
+            <a class="nav-item" id="nav-timeline" onclick="switchMainView('timeline')"><i class="fa-solid fa-timeline"></i> Timeline & Waves</a>
+            <a class="nav-item" id="nav-resources" onclick="switchMainView('resources')"><i class="fa-solid fa-users"></i> Resource Matrix</a>
+            <a class="nav-item" id="nav-risks" onclick="switchMainView('risks')"><i class="fa-solid fa-triangle-exclamation"></i> Risks & Notes</a>
+        </div>
+        
+        <div class="snapshot-area">
+            <div class="snapshot-title">Project Snapshot</div>
+            <div class="snap-item"><div class="snap-label">Platform</div><div class="snap-value" id="snap-platform">-</div></div>
+            <div class="snap-item"><div class="snap-label">Total Devices</div><div class="snap-value" id="snap-devices">-</div></div>
+            <div class="snap-item"><div class="snap-label">Duration</div><div class="snap-value" id="snap-duration">-</div></div>
+            <div class="snap-item"><div class="snap-label">Peak FTE</div><div class="snap-value" id="snap-peak">-</div></div>
+            <div class="snap-item"><div class="snap-label">Person Months</div><div class="snap-value" id="snap-personmonths">-</div></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="main-content">
+        <div class="header">
+            <h2>
+                <button id="mobile-menu-btn" onclick="toggleMobileMenu()"><i class="fa-solid fa-bars"></i></button>
+                <span id="app-header-title">Planner Setup</span>
+            </h2>
+            <div class="header-actions">
+                <button onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i> <span>Reset Planner</span></button>
+            </div>
+        </div>
+
+        <div class="content-scroll">
+
+            <!-- ==========================================
+                 VIEW 1: PLANNER SETUP (Data Entry) 
+                 ========================================== -->
+            <div id="view-planner" class="main-view active">
+                
+                <div class="stepper">
+                    <div class="step active" id="nav-step-1" onclick="switchWizardTab(1)"><i class="fa-solid fa-1"></i> Platform & Scope</div>
+                    <div class="step" id="nav-step-2" onclick="switchWizardTab(2)"><i class="fa-solid fa-2"></i> Initial FTE Matrix</div>
+                    <div class="step" id="nav-step-3" onclick="switchWizardTab(3)"><i class="fa-solid fa-3"></i> Strategic Settings</div>
+                </div>
+
+                <!-- Wizard Tab 1: Scope -->
+                <div id="tab-1" class="tab-content active">
+                    <div class="card">
+                        <div class="card-header"><i class="fa-solid fa-sliders"></i> Migration Scope Parameters</div>
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Select Platform</label>
+                                <select id="osType" onchange="handlePlatformChange()">
+                                    <option value="windows">Windows</option>
+                                    <option value="mobile">Mobile (iOS/Android)</option>
+                                    <option value="mac">Mac OS</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Total Devices</label>
+                                <input type="number" id="totalDevices" value="50000">
+                            </div>
+                            <div class="input-group">
+                                <label>Devices per Batch</label>
+                                <input type="number" id="batchSize" value="2500">
+                            </div>
+                            <div class="input-group">
+                                <label>Target Batches / Week</label>
+                                <input type="number" id="batchesPerWeek" value="1">
+                            </div>
+                            <div class="input-group" id="appsContainer">
+                                <label>Total Apps to Package</label>
+                                <input type="number" id="totalApps" value="400">
+                            </div>
+                        </div>
+                        <div class="flex-between">
+                            <div></div>
+                            <button class="btn-action" onclick="calculateAndAdvance(2)">Calculate FTE Matrix <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wizard Tab 2: Matrix Preview -->
+                <div id="tab-2" class="tab-content">
+                    <div class="card" style="padding: 0; overflow: hidden;">
+                        <div class="card-header" style="padding: 20px; border-bottom: none; margin: 0;"><i class="fa-regular fa-calendar-days"></i> Month-by-Month Phase & FTE Matrix Preview</div>
+                        <div style="overflow-x: auto; padding: 0 20px 20px 20px;" id="tab2-matrix-container"></div>
+                    </div>
+                    
+                    <div id="paywallSection" class="paywall">
+                        <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Dashboard</h3>
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining 75% of your matrix, timeline, charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
+                        <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TEht31x9wlMsfj" async> </script> </form>
+                    </div>
+
+                    <div class="flex-between" id="tab-2-actions" style="display: none;">
+                        <button class="btn-action" style="background: var(--text-muted);" onclick="switchWizardTab(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button class="btn-action" onclick="switchWizardTab(3)">Continue to Configuration <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Wizard Tab 3: Configuration -->
+                <div id="tab-3" class="tab-content">
+                    <div class="grid-2">
+                        <div>
+                            <div class="card">
+                                <div class="card-header"><i class="fa-solid fa-chess-knight"></i> Migration Strategy</div>
+                                <div class="input-group">
+                                    <label>Migration Type</label>
+                                    <select>
+                                        <option>Wave Based</option>
+                                        <option>Big Bang</option>
+                                        <option>Ring Based</option>
+                                        <option>Country Based</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><i class="fa-solid fa-clock"></i> Project Timeline Target</div>
+                                <div style="overflow-x: auto;">
+                                    <table class="data-table" style="min-width: 300px;">
+                                        <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()"></td></tr>
+                                        <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="color: var(--text-muted);"></td></tr>
+                                        <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="color: var(--text-muted);"></td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header"><i class="fa-solid fa-laptop-code"></i> Platform Baselines</div>
+                            <ul class="check-list" id="config-windows">
+                                <li><input type="checkbox" checked> Autopilot Provisioning</li>
+                                <li><input type="checkbox" checked> Co-management</li>
+                                <li><input type="checkbox" checked> Hybrid Azure AD Join</li>
+                                <li><input type="checkbox" checked> Windows Defender AV</li>
+                                <li><input type="checkbox" checked> BitLocker Encryption</li>
+                            </ul>
+                            <ul class="check-list" id="config-mobile" style="display:none;">
+                                <li><input type="checkbox" checked> Apple Business Manager (ABM)</li>
+                                <li><input type="checkbox" checked> ADE / VPP Configured</li>
+                                <li><input type="checkbox" checked> Android Enterprise</li>
+                                <li><input type="checkbox" checked> Shared Devices (No User Affinity)</li>
+                            </ul>
+                            <ul class="check-list" id="config-mac" style="display:none;">
+                                <li><input type="checkbox" checked> FileVault Encryption</li>
+                                <li><input type="checkbox" checked> PPPC & System Extensions</li>
+                                <li><input type="checkbox" checked> Platform SSO</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex-between">
+                        <button class="btn-action" style="background: var(--text-muted);" onclick="switchWizardTab(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button class="btn-action" onclick="switchMainView('dashboard')"><i class="fa-solid fa-chart-pie"></i> View Executive Dashboard</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ==========================================
+                 VIEW 2: FULL EXECUTIVE DASHBOARD
+                 ========================================== -->
+            <div id="view-dashboard" class="main-view">
+                
+                <div class="summary-grid">
+                    <div class="sum-card">
+                        <i class="fa-solid fa-users sum-icon sum-icon-blue"></i>
+                        <div class="sum-data"><label>Peak FTE Staffing</label><div class="val" id="dash-peak">0</div><div class="sub">Max Required</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-regular fa-calendar sum-icon sum-icon-green"></i>
+                        <div class="sum-data"><label>Total Duration</label><div class="val" id="dash-duration">0 Mo</div><div class="sub">End-to-End</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-rocket sum-icon sum-icon-green"></i>
+                        <div class="sum-data"><label>Est. Go-Live</label><div class="val" id="dash-golive">M0</div><div class="sub">Production Start</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-water sum-icon sum-icon-purple"></i>
+                        <div class="sum-data"><label>Migration Waves</label><div class="val" id="dash-waves">0</div><div class="sub">Total Rollouts</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-user-clock sum-icon sum-icon-orange"></i>
+                        <div class="sum-data"><label>Person Months</label><div class="val" id="dash-pm">0</div><div class="sub">Total Effort</div></div>
+                    </div>
+                    <div class="sum-card">
+                        <i class="fa-solid fa-shield-halved sum-icon sum-icon-orange"></i>
+                        <div class="sum-data"><label>Overall Risk</label><div class="val">Medium</div><div class="sub">Moderate</div></div>
+                    </div>
+                </div>
+
+                <!-- Matrix and Trend Line Row -->
+                <div class="dash-row-2">
+                    <div class="dash-panel" style="overflow-x: auto;">
+                        <h4 class="dash-panel-title">Month-by-Month Phase & FTE Matrix</h4>
+                        <div id="dash-matrix-container"></div>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE Trend</h4>
+                        <div class="chart-wrapper-small">
+                            <canvas id="lineChartDash"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline, Donut, and Waves Row -->
+                <div class="dash-row-3">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE Effort by Role (%)</h4>
+                        <div class="chart-wrapper-small">
+                            <canvas id="donutChartDash"></canvas>
+                        </div>
+                    </div>
+                    <div class="dash-panel" style="overflow-x: auto;">
+                        <h4 class="dash-panel-title">High-Level Migration Timeline</h4>
+                        <div class="gantt-wrapper" id="dash-gantt-container" style="min-width: 400px;"></div>
+                    </div>
+                    <div class="dash-panel" style="overflow-y: auto; max-height: 275px;">
+                        <h4 class="dash-panel-title">Migration Waves Plan</h4>
+                        <table class="data-table" id="dash-waves-table"></table>
+                    </div>
+                </div>
+
+                <!-- Risks and Recommendations Row -->
+                <div class="dash-row-4">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Top Risks</h4>
+                        <ul class="check-list">
+                            <li><span class="status-dot dot-red"></span> Application compatibility and packaging</li>
+                            <li><span class="status-dot dot-yellow"></span> Complex GPO to Intune policy mapping</li>
+                            <li><span class="status-dot dot-yellow"></span> End-user adoption friction</li>
+                            <li><span class="status-dot dot-green"></span> Network bandwidth constraints</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Dependencies</h4>
+                        <ul class="check-list">
+                            <li><i class="fa-solid fa-check"></i> Intune Tenant Configured</li>
+                            <li><i class="fa-solid fa-check"></i> Azure AD Environment Ready</li>
+                            <li><span style="color:#f59e0b; margin-right:6px;"><i class="fa-solid fa-spinner"></i></span> Device Enrollment Profiles</li>
+                            <li><i class="fa-solid fa-check"></i> Packaging Lab Provisioned</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Key Assumptions</h4>
+                        <ul class="check-list" id="dash-assumptions-list" style="color: var(--text-muted);"></ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Recommendations</h4>
+                        <ul class="check-list" style="color: var(--text-muted);">
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Initiate app packaging early.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Migrate policies in waves.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Diverse hardware pilot group.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Strong change management.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 VIEW 3: DETAILED PROJECT GANTT PLAN (EXCEL STYLE)
+                 ========================================== -->
+            <div id="view-gantt" class="main-view">
+                
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+                    <button onclick="downloadDetailedGanttExcel()" style="background-color: #10b981; color: white; padding: 10px 20px; font-size: 14px; border-radius: 4px; font-weight: bold; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2); transition: 0.2s;">
+                        <i class="fa-solid fa-file-excel" style="font-size: 16px;"></i> Download Excel Plan
+                    </button>
+                </div>
+
+                <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; height: calc(100vh - 200px); min-height: 400px;">
+                    <div style="overflow: auto; flex: 1; padding: 0;" id="detailed-gantt-container">
+                        <!-- Table generated dynamically based on OS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 VIEW 4: TIMELINE & WAVES
+                 ========================================== -->
+            <div id="view-timeline" class="main-view">
+                <div class="grid-2">
+                    <div class="dash-panel" style="overflow-x: auto;">
+                        <h4 class="dash-panel-title">Migration Master Timeline</h4>
+                        <div class="gantt-wrapper" id="time-gantt-container" style="min-width: 400px;"></div>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Migration Waves Schedule</h4>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="data-table" id="view-waves-table"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 VIEW 5: RESOURCE MATRIX
+                 ========================================== -->
+            <div id="view-resources" class="main-view">
+                <div class="dash-panel" style="margin-bottom: 20px; overflow-x: auto;">
+                    <h4 class="dash-panel-title">Month-by-Month Phase & FTE Matrix</h4>
+                    <div id="view-matrix-container"></div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE Total Trend (Per Month)</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="lineChartRes"></canvas>
+                        </div>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">FTE Effort by Role (%)</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="donutChartRes"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 VIEW 6: RISKS & NOTES
+                 ========================================== -->
+            <div id="view-risks" class="main-view">
+                <div class="grid-2">
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Top Project Risks</h4>
+                        <ul class="check-list">
+                            <li><span class="status-dot dot-red"></span> Legacy application compatibility and packaging delays</li>
+                            <li><span class="status-dot dot-yellow"></span> Complex GPO to Intune policy mapping</li>
+                            <li><span class="status-dot dot-yellow"></span> End-user adoption and change management friction</li>
+                            <li><span class="status-dot dot-green"></span> Network bandwidth for large content distribution</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Technical Dependencies</h4>
+                        <ul class="check-list">
+                            <li><i class="fa-solid fa-check"></i> Intune Tenant Configured and Licensed</li>
+                            <li><i class="fa-solid fa-check"></i> Azure AD Environment Ready</li>
+                            <li><span style="color:#f59e0b; margin-right:6px;"><i class="fa-solid fa-spinner"></i></span> Device Enrollment Profiles Active</li>
+                            <li><i class="fa-solid fa-check"></i> Packaging Lab Provisioned</li>
+                        </ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Planning Assumptions</h4>
+                        <ul class="check-list" id="view-assumptions-list" style="color: var(--text-muted);"></ul>
+                    </div>
+                    <div class="dash-panel">
+                        <h4 class="dash-panel-title">Recommendations</h4>
+                        <ul class="check-list" style="color: var(--text-muted);">
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Initiate app packaging early in the Assessment phase.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Migrate policies in iterative waves to isolate issues.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Ensure pilot group contains diverse device hardware types.</li>
+                            <li><i class="fa-regular fa-thumbs-up" style="color:var(--text-muted)"></i> Develop strong, clear communication templates for users.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC -->
+    <script>
+        // Dual chart instances to allow rendering on multiple tabs simultaneously
+        let lineChartDash = null;
+        let donutChartDash = null;
+        let lineChartRes = null;
+        let donutChartRes = null;
+
+        let chartGlobalData = { labels: [], data: [], maxVal: 0 };
+        let donutGlobalData = { labels: [], data: [], colors: [] };
+        
+        // Global object to store Gantt data for Excel Export
+        let finalExcelData = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for URL parameters passed from Lzebra.com Embed Widget
+            const urlParams = new URLSearchParams(window.location.search);
+            let hasIncomingData = false;
+            
+            if(urlParams.has('os')) { document.getElementById('osType').value = urlParams.get('os'); hasIncomingData = true; }
+            if(urlParams.has('devices')) document.getElementById('totalDevices').value = urlParams.get('devices');
+            if(urlParams.has('batch')) document.getElementById('batchSize').value = urlParams.get('batch');
+            if(urlParams.has('bpw')) document.getElementById('batchesPerWeek').value = urlParams.get('bpw');
+            if(urlParams.has('apps')) document.getElementById('totalApps').value = urlParams.get('apps');
+            
+            // Handle Razorpay's specific payment ID parameter
+            if (urlParams.has('razorpay_payment_id') || urlParams.has('payment_id')) {
+                localStorage.setItem('planner_unlocked', 'true');
+                // Clean the URL so the payment ID doesn't stay in the address bar
+                window.history.replaceState({}, document.title, window.location.pathname);
+                alert("Payment successful! Unlocking your full dashboard and tools...");
+            }
+            
+            isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
+            
+            // STRICT CSS ENFORCEMENT: Kill the paywall entirely if unlocked
+            if (isUnlocked) {
+                document.body.classList.add('is-unlocked');
+                let pw = document.getElementById('paywallSection');
+                if (pw) { pw.innerHTML = ''; } // Destroy the Razorpay script
+            }
+
+            document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
+            
+            // Initial calculations
+            handlePlatformChange();
+            calculatePlan();
+
+            // If user arrived from the embed widget, handle view routing
+            if(hasIncomingData && !isUnlocked) {
+                switchMainView('planner'); // Force them to the planner to see the paywall if not unlocked
+            } else if (hasIncomingData && isUnlocked) {
+                switchMainView('dashboard'); // Go straight to dashboard if already unlocked
+            }
+        });
+
+        // -----------------------------------------------------
+        // MOBILE / RESPONSIVE LOGIC
+        // -----------------------------------------------------
+        function toggleMobileMenu() {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.getElementById('mobile-overlay').classList.toggle('active');
+        }
+
+        // -----------------------------------------------------
+        // SIDEBAR NAVIGATION LOGIC
+        // -----------------------------------------------------
+        function switchMainView(viewId) {
+            // Paywall Check for Protected Views
+            if (!isUnlocked && (viewId === 'dashboard' || viewId === 'gantt' || viewId === 'timeline' || viewId === 'resources' || viewId === 'risks')) {
+                alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
+                return;
+            }
+
+            // Mobile menu auto-close
+            if(window.innerWidth <= 950) {
+                document.querySelector('.sidebar').classList.remove('open');
+                document.getElementById('mobile-overlay').classList.remove('active');
+            }
+
+            // Hide all views
+            document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+            // Remove active highlight from sidebar items
+            document.querySelectorAll('.sidebar .nav-item').forEach(n => n.classList.remove('active'));
+
+            // Show selected view & highlight sidebar item
+            document.getElementById('view-' + viewId).classList.add('active');
+            document.getElementById('nav-' + viewId).classList.add('active');
+
+            // Update Header Title based on the view
+            const titles = {
+                'planner': 'Planner Setup',
+                'dashboard': 'Executive Dashboard',
+                'gantt': 'Project Gantt Chart Plan',
+                'timeline': 'High-Level Timeline & Waves',
+                'resources': 'Resource Matrix & Analytics',
+                'risks': 'Risks, Assumptions & Recommendations'
+            };
+            document.getElementById('app-header-title').innerText = titles[viewId];
+
+            // Render Chart.js graphs dynamically when tabs open
+            if (viewId === 'dashboard' || viewId === 'resources') {
+                setTimeout(() => { renderCharts(); }, 50); 
+            }
+        }
+
+        function switchWizardTab(tabIndex) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('tab-' + tabIndex).classList.add('active');
+            document.getElementById('nav-step-' + tabIndex).classList.add('active');
+        }
+
+        function calculateAndAdvance(tabIndex) {
+            calculatePlan();
+            switchWizardTab(tabIndex);
+        }
+
+        // -----------------------------------------------------
+        // DATA & MATH LOGIC
+        // -----------------------------------------------------
+        function handlePlatformChange() {
+            let os = document.getElementById('osType').value;
+            document.getElementById('appsContainer').style.display = (os === 'mobile') ? 'none' : 'block';
+            document.getElementById('config-windows').style.display = 'none';
+            document.getElementById('config-mobile').style.display = 'none';
+            document.getElementById('config-mac').style.display = 'none';
+            document.getElementById('config-' + os).style.display = 'block';
+
+            let assumptions = "";
+            if (os === 'windows') {
+                assumptions = `
+                    <li><i class="fa-solid fa-angle-right"></i> Deployment: ~600 devs/wk per engineer.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> App Packaging: ~100 apps/wk per engineer.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> Hypercare phase estimated at 2 months.</li>`;
+            } else if (os === 'mobile') {
+                assumptions = `
+                    <li><i class="fa-solid fa-angle-right"></i> Shared Devices configured with NO user affinity.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> ABM / Android Enterprise previously configured.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> Hypercare phase estimated at 1 month.</li>`;
+            } else {
+                assumptions = `
+                    <li><i class="fa-solid fa-angle-right"></i> Deployment: ~600 devs/wk per engineer.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> ABM configured for zero-touch provisioning.</li>
+                    <li><i class="fa-solid fa-angle-right"></i> Hypercare phase estimated at 1 month.</li>`;
+            }
+            document.getElementById('dash-assumptions-list').innerHTML = assumptions;
+            document.getElementById('view-assumptions-list').innerHTML = assumptions;
+        }
+
+        function addDaysToDate(dateStr, days) {
+            let d = new Date(dateStr);
+            d.setDate(d.getDate() + days);
+            return d.toISOString().split('T')[0];
+        }
+
+        function calculatePlan() {
+            handlePlatformChange(); 
+            let osType = document.getElementById('osType').value;
+            let devices = parseInt(document.getElementById('totalDevices').value);
+            let batchSize = parseInt(document.getElementById('batchSize').value);
+            let batchesPerWeek = parseInt(document.getElementById('batchesPerWeek').value);
+            let totalApps = parseInt(document.getElementById('totalApps').value) || 0;
+            
+            if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
+                
+                // Base Month Math for Matrices
+                let inceptionM = 1, discoveryM = 1, designM = 1, prepM = 1, pilotM = 1, hypercareM = 2;
+                if(osType === 'windows') { prepM = 2; discoveryM = 2; }
+                if(osType === 'mobile' || osType === 'mac') { hypercareM = 1; }
+
+                let actualWeeklyThroughput = batchSize * batchesPerWeek;
+                let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
+                let migrationM = Math.max(1, Math.ceil(migrationWeeks / 4.33));
+                
+                let deploy = (osType === 'mobile') ? Math.max(1, Math.ceil(actualWeeklyThroughput / 60)) : Math.max(1, Math.ceil(actualWeeklyThroughput / 600));
+                let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((prepM * 4.33) * 100)));
+
+                let totalMonths = inceptionM + discoveryM + designM + prepM + pilotM + migrationM + hypercareM;
+                let visiblePoint = Math.ceil(totalMonths * 0.25); // For Paywall preview
+
+                let startDateStr = document.getElementById('date-start').value || new Date().toISOString().split('T')[0];
+                
+                // Calculate simple milestone dates based on proportional logic
+                let pilotDate = addDaysToDate(startDateStr, (inceptionM + discoveryM + designM + prepM) * 30);
+                let prodDate = addDaysToDate(pilotDate, pilotM * 30);
+                document.getElementById('date-pilot').value = pilotDate;
+                document.getElementById('date-prod').value = prodDate;
+                
+                // 2. Migration Waves Table
+                let waveTable = `<tr><th>Wave Name</th><th>Target Devices</th><th>Status</th></tr>`;
+                let remDevs = devices;
+                let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
+                if(pilotSize > 0) { waveTable += `<tr><td>Pilot Phase</td><td>${pilotSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`; remDevs -= pilotSize; }
+                
+                let waveNum = 1;
+                while(remDevs > 0) { 
+                    if(waveNum === 10 && remDevs > 0) {
+                        let remWaves = Math.ceil(remDevs / batchSize);
+                        waveTable += `<tr><td>Waves ${waveNum} to ${waveNum + remWaves - 1}</td><td>${remDevs.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`;
+                        remDevs = 0; 
+                    } else {
+                        let bSize = Math.min(batchSize, remDevs);
+                        waveTable += `<tr><td>Wave ${waveNum}</td><td>${bSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`;
+                        remDevs -= bSize;
+                        waveNum++;
+                    }
+                }
+                document.getElementById('dash-waves-table').innerHTML = waveTable;
+                document.getElementById('view-waves-table').innerHTML = waveTable;
+
+                // 3. FTE Matrix Generation
+                function getFTE(peak, role, m) {
+                    if (peak === 0) return 0;
+                    let phase = "";
+                    if (m <= inceptionM) phase = "Inception";
+                    else if (m <= inceptionM + discoveryM) phase = "Discovery";
+                    else if (m <= inceptionM + discoveryM + designM) phase = "Design";
+                    else if (m <= inceptionM + discoveryM + designM + prepM) phase = "Prep";
+                    else if (m <= inceptionM + discoveryM + designM + prepM + pilotM) phase = "Pilot";
+                    else if (m <= totalMonths - hypercareM) phase = "Migration";
+                    else phase = "Hypercare";
+
+                    let mult = 0;
+                    if (role === 'Arch') mult = (phase === "Migration" || phase === "Hypercare") ? 0.5 : 1.0;
+                    if (role === 'End') mult = (phase === "Inception" || phase === "Hypercare") ? 0.5 : 1.0;
+                    if (role === 'App') mult = (phase === "Inception" || phase === "Hypercare" || phase === "Migration") ? 0 : 1.0;
+                    if (role === 'Gpo') mult = (phase === "Inception" || phase === "Hypercare") ? 0.5 : 1.0;
+                    if (role === 'Dep') mult = (phase === "Pilot") ? 0.5 : (phase === "Migration") ? 1.0 : 0;
+                    if (role === 'Hyp') mult = (phase === "Hypercare" || phase === "Migration") ? 1.0 : 0;
+
+                    return Math.max(1, Math.round(peak * mult));
+                }
+
+                let reqArch = Math.max(1, Math.ceil(devices / 35000));
+                let reqEnd = Math.max(1, Math.ceil(devices / 18000));
+
+                const roles = [
+                    ['Architects', 'Arch', reqArch, '#3b82f6'], 
+                    ['L3 Engineer', 'End', reqEnd, '#10b981'], 
+                    ['App Packaging', 'App', appFTE, '#f59e0b'], 
+                    ['GPO/Policy/CA Expert', 'Gpo', Math.max(1, Math.ceil(devices / 20000)), '#8b5cf6'], 
+                    ['Deployment Engineers', 'Dep', deploy, '#ec4899'], 
+                    ['Hypercare', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800)), '#64748b']
+                ];
+
+                let matrixHTML = '<table class="matrix-table">';
+                matrixHTML += `<tr><td style="border: none; background: white;"></td><td colspan="${inceptionM+discoveryM}" class="bg-assess">Discovery & Design</td><td colspan="${designM+prepM}" class="bg-found">Preparation</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hypercare</td></tr>`;
+                matrixHTML += '<tr style="background: #f8fafc;"><td class="role-name">Role Name</td>';
+                for (let i = 1; i <= totalMonths; i++) { matrixHTML += `<td>M${i}</td>`; }
+                matrixHTML += '</tr>';
+
+                let monthlyTotals = new Array(totalMonths + 1).fill(0);
+                let peakFTE = 0, totalPersonMonths = 0;
+                
+                donutGlobalData = { labels: [], data: [], colors: [] };
+
+                roles.forEach(role => {
+                    if(role[1] === 'App' && osType === 'mobile') return;
+                    matrixHTML += `<tr><td class="role-name"><i class="fa-solid fa-user" style="color:${role[3]}; margin-right:8px;"></i>${role[0]}</td>`;
+                    let rSum = 0;
+                    for (let i = 1; i <= totalMonths; i++) {
+                        let fteValue = getFTE(role[2], role[1], i);
+                        monthlyTotals[i] += fteValue; 
+                        rSum += fteValue;
+                        if (document.querySelector('.tab-content.active') && document.querySelector('.tab-content.active').id === 'tab-2') {
+                            matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${fteValue}</td>`;
+                        } else {
+                            matrixHTML += `<td>${fteValue}</td>`;
+                        }
+                    }
+                    donutGlobalData.data.push(rSum);
+                    donutGlobalData.labels.push(role[0]);
+                    donutGlobalData.colors.push(role[3]);
+                    matrixHTML += '</tr>';
+                });
+
+                chartGlobalData = { labels: [], data: [], maxVal: 0 };
+                for(let m = 1; m <= totalMonths; m++) {
+                    totalPersonMonths += monthlyTotals[m];
+                    if(monthlyTotals[m] > peakFTE) peakFTE = monthlyTotals[m];
+                    chartGlobalData.labels.push(`M${m}`);
+                    chartGlobalData.data.push(monthlyTotals[m]);
+                }
+                chartGlobalData.maxVal = peakFTE;
+
+                matrixHTML += '<tr style="font-weight: bold; background: #f8fafc; color: var(--primary); border-top: 2px solid var(--border-color);"><td class="role-name">Total Combined FTE</td>';
+                for (let i = 1; i <= totalMonths; i++) {
+                    if (document.querySelector('.tab-content.active') && document.querySelector('.tab-content.active').id === 'tab-2') {
+                        matrixHTML += (i > visiblePoint && !isUnlocked) ? '<td class="locked-cell">🔒</td>' : `<td>${monthlyTotals[i]}</td>`;
+                    } else {
+                        matrixHTML += `<td>${monthlyTotals[i]}</td>`;
+                    }
+                }
+                matrixHTML += '</tr></table>';
+
+                document.getElementById('tab2-matrix-container').innerHTML = matrixHTML; 
+                document.getElementById('dash-matrix-container').innerHTML = matrixHTML; 
+                document.getElementById('view-matrix-container').innerHTML = matrixHTML; 
+
+                // 4. Update Summary Statistics Globally
+                let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
+                let totalBatches = Math.ceil(devices / batchSize);
+                let goLiveMonth = inceptionM + discoveryM + designM + prepM + pilotM + 1;
+
+                document.getElementById('snap-platform').innerText = platformName;
+                document.getElementById('snap-devices').innerText = devices.toLocaleString();
+
+                if(isUnlocked) {
+                    document.getElementById('paywallSection').style.display = 'none';
+                    document.getElementById('tab-2-actions').style.display = 'flex';
+                    
+                    document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
+                    document.getElementById('dash-duration').innerText = `${totalMonths} Mo`;
+                    document.getElementById('snap-peak').innerText = peakFTE;
+                    document.getElementById('dash-peak').innerText = peakFTE;
+                    document.getElementById('snap-personmonths').innerText = totalPersonMonths;
+                    document.getElementById('dash-pm').innerText = totalPersonMonths;
+                    document.getElementById('dash-waves').innerText = totalBatches;
+                    document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
+
+                    // Simple Dashboard Gantt
+                    let ganttHTML = `<div class="gantt-header">`;
+                    for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
+                    ganttHTML += `</div>`;
+                    
+                    function drawBar(name, st, dur, col) {
+                        let L = ((st - 1) / totalMonths) * 100;
+                        let W = (dur / totalMonths) * 100;
+                        return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
+                    }
+                    ganttHTML += drawBar('Disc/Design', 1, inceptionM+discoveryM+designM, '#93c5fd');
+                    ganttHTML += drawBar('Preparation', 1+inceptionM+discoveryM+designM, prepM, '#86efac');
+                    ganttHTML += drawBar('Pilot', 1+inceptionM+discoveryM+designM+prepM, pilotM, '#fde047');
+                    ganttHTML += drawBar('Migration', 1+inceptionM+discoveryM+designM+prepM+pilotM, migrationM, '#c084fc');
+                    ganttHTML += drawBar('Hypercare', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
+                    
+                    document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
+                    document.getElementById('time-gantt-container').innerHTML = ganttHTML;
+
+                    // ==========================================
+                    // 6. GENERATE DETAILED WBS GANTT CHART (EXCEL STYLE)
+                    // ==========================================
+                    let rawTasks = [];
+                    let cCode = 1001;
+                    
+                    function addTask(phase, name, days) {
+                        rawTasks.push({ code: cCode++, phase: phase, name: name, days: days });
+                    }
+
+                    // Scaled logic to ensure granular days sum exactly to the allocated months
+                    if (osType === 'windows') {
+                        addTask('Inception', 'Contract Execution - Client Sign-Off', 5);
+                        addTask('Inception', 'Project Staffing', 5);
+                        addTask('Inception', 'Staff Onboarding & Orientation', 5);
+                        addTask('Inception', 'Business Stakeholder Identification', 5);
+                        addTask('Inception', 'Kick Off Meeting - Initial Scope', 5);
+                        addTask('Inception', 'APB Project Plan Review', 5);
+                        
+                        addTask('Discover', 'Device inventory report', 15);
+                        addTask('Discover', 'Policies & Configuration Review', 15);
+                        addTask('Discover', 'Use Case Identification', 10);
+                        addTask('Discover', 'Required Apps Details and Information', 10);
+                        addTask('Discover', 'GPO & Legacy Policy Assessment', 10);
+                        
+                        addTask('Design', 'Capture Scope / Prerequisites', 8);
+                        addTask('Design', 'Define Policies and restriction', 8);
+                        addTask('Design', 'Create Required Group for migration', 7);
+                        addTask('Design', 'List of LOBs Apps Details', 7);
+                        
+                        addTask('Env Prep', 'Group Creation for UAT & Corp', 15);
+                        addTask('Env Prep', 'Azure AD Join Configuration', 15);
+                        
+                        addTask('Configuration', 'Intune Deployment & Restriction Policies', 8);
+                        addTask('Configuration', 'Autopilot Profile for UAT & CORP', 8);
+                        addTask('Configuration', 'Configure compliance restriction', 7);
+                        addTask('Configuration', 'Deploy LOBs apps for CORP Devices', 7);
+                        
+                        addTask('UAT / Pilot', 'Pilot Users Details & Selection', 5);
+                        addTask('UAT / Pilot', 'Added the user into the Test group', 5);
+                        addTask('UAT / Pilot', 'Test the Environment with Pilot users', 15);
+                        addTask('UAT / Pilot', 'Sign-off on the POC', 5);
+                        
+                        addTask('Migration', 'Comms sent to CORP users to enroll', 1);
+                        addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1); 
+                        
+                        addTask('Post Migration', 'Validate all migrated device policies', 10);
+                        addTask('Post Migration', 'Address Migration Related Issue', 10);
+                        addTask('Post Migration', 'Monitoring the environment', 10);
+                        
+                        addTask('Training', 'Support end users services', 15);
+                        addTask('Training', 'SOPs for the support', 15);
+                        
+                    } else if (osType === 'mobile') {
+                        addTask('Inception', 'Contract Execution - Client Sign-Off', 5);
+                        addTask('Inception', 'Project Staffing', 5);
+                        addTask('Inception', 'Business Stakeholder Identification', 10);
+                        addTask('Inception', 'Kick Off Meeting - Initial Scope', 10);
+                        
+                        addTask('Discover', 'Mobile Device inventory (ABM & AW) report', 10);
+                        addTask('Discover', 'Policies & Configuration Review', 10);
+                        addTask('Discover', 'Use Case Identification', 5);
+                        addTask('Discover', 'Licenses Information', 5);
+                        
+                        addTask('Design', 'Capture Scope / Prerequisites', 10);
+                        addTask('Design', 'Define Mobile Policies and restriction', 10);
+                        addTask('Design', 'List of Required Managed Apps', 10);
+                        
+                        addTask('Env Prep', 'Group Creation for UAT & Corp', 5);
+                        addTask('Env Prep', 'ABM / Android Enterprise Integration', 10);
+                        
+                        addTask('Configuration', 'Deployment & Restriction Policies', 4);
+                        addTask('Configuration', 'DEF Profile for UAT & CORP devices', 4);
+                        addTask('Configuration', 'Configure compliance restriction', 3);
+                        addTask('Configuration', 'Deploy Required Apps for Devices', 4);
+                        
+                        addTask('UAT / Pilot', 'Pilot Users Details', 5);
+                        addTask('UAT / Pilot', 'Test the Environment with Pilot users', 20);
+                        addTask('UAT / Pilot', 'Sign-off on the POC', 5);
+                        
+                        addTask('Migration', 'Comms sent to CORP users to re-enroll', 1);
+                        addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1);
+                        
+                        addTask('Post Migration', 'Validate all migrated devices', 5);
+                        addTask('Post Migration', 'Monitoring the environment', 10);
+                        addTask('Training', 'SOPs for the support', 15);
+                        
+                    } else { // Mac
+                        addTask('Inception', 'Contract Execution - Client Sign-Off', 10);
+                        addTask('Inception', 'Project Staffing', 10);
+                        addTask('Inception', 'Business Stakeholder Identification', 10);
+                        
+                        addTask('Discover', 'Mac Device inventory report', 10);
+                        addTask('Discover', 'Policies & Jamf Configuration Review', 10);
+                        addTask('Discover', 'Use Case Identification', 10);
+                        
+                        addTask('Design', 'Capture Scope / Prerequisites', 10);
+                        addTask('Design', 'Define Policies and restriction', 10);
+                        addTask('Design', 'Platform SSO Architecture Design', 10);
+                        
+                        addTask('Env Prep', 'Group Creation for UAT & Corp', 5);
+                        addTask('Env Prep', 'Apple Business Manager Integration', 10);
+                        
+                        addTask('Configuration', 'Deployment & Restriction Policies', 5);
+                        addTask('Configuration', 'FileVault & PPPC Profiles Configured', 5);
+                        addTask('Configuration', 'Deploy LOBs apps (PKG/DMG)', 5);
+                        
+                        addTask('UAT / Pilot', 'Pilot Users Details', 5);
+                        addTask('UAT / Pilot', 'Test the Environment with Pilot users', 20);
+                        addTask('UAT / Pilot', 'Sign-off on the POC', 5);
+                        
+                        addTask('Migration', 'Comms sent to CORP users to re-enroll', 1);
+                        addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1);
+                        
+                        addTask('Post Migration', 'Validate all migrated devices', 5);
+                        addTask('Post Migration', 'Monitoring the environment', 10);
+                        addTask('Training', 'SOPs for the support', 15);
+                    }
+
+                    // Calculate Dates and Weeks dynamically
+                    let currentDate = startDateStr;
+                    rawTasks.forEach(t => {
+                        t.startDate = currentDate;
+                        t.endDate = addDaysToDate(currentDate, t.days);
+                        currentDate = t.endDate; // Sequential waterfall
+                    });
+                    
+                    let projectStartMs = new Date(startDateStr).getTime();
+                    let projectEndMs = new Date(rawTasks[rawTasks.length - 1].endDate).getTime();
+                    let totalProjectDays = Math.ceil((projectEndMs - projectStartMs) / (1000 * 60 * 60 * 24));
+                    let totalWeeks = Math.max(1, Math.ceil(totalProjectDays / 7));
+
+                    let detailedGanttHTML = `<table class="excel-grid">`;
+                    detailedGanttHTML += `<thead><tr>
+                        <th class="col-code">Milestone Code</th>
+                        <th class="col-phase">Phase</th>
+                        <th class="col-task">Task / Milestone</th>
+                        <th>Duration (Days)</th>
+                        <th>Status</th>
+                        <th>% Completed</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>`;
+                    for(let w=1; w<=totalWeeks; w++) { detailedGanttHTML += `<th>W${w}</th>`; }
+                    detailedGanttHTML += `</tr></thead><tbody>`;
+
+                    // Prep Data for Excel Export
+                    finalExcelData = [
+                        ['Milestone Code', 'Phase', 'Task / Milestone', 'Duration (Days)', 'Status', '% Completed', 'Start Date', 'End Date']
+                    ];
+                    for(let w=1; w<=totalWeeks; w++) { finalExcelData[0].push('W'+w); }
+
+                    let lastPhase = "";
+                    rawTasks.forEach(t => {
+                        let isNewPhase = (t.phase !== lastPhase);
+                        lastPhase = t.phase;
+                        
+                        let excelRow = [t.code, t.phase, t.name, t.days, 'Not Started', '0%', t.startDate, t.endDate];
+
+                        detailedGanttHTML += `<tr>
+                            <td class="col-code">${t.code}</td>
+                            <td class="col-phase" style="font-weight: ${isNewPhase ? 'bold':'normal'}; color: ${isNewPhase ? '#0f172a':'transparent'};">${t.phase}</td>
+                            <td class="col-task">${t.name}</td>
+                            <td>${t.days}</td>
+                            <td style="color:#64748b;">Not Started</td>
+                            <td style="color:#64748b;">0%</td>
+                            <td style="color:#64748b;">${t.startDate}</td>
+                            <td style="color:#64748b;">${t.endDate}</td>`;
+
+                        let taskStartMs = new Date(t.startDate).getTime();
+                        let taskEndMs = new Date(t.endDate).getTime();
+
+                        for(let w=1; w<=totalWeeks; w++) {
+                            let weekStartMs = projectStartMs + ((w - 1) * 7 * 24 * 60 * 60 * 1000);
+                            let weekEndMs = projectStartMs + (w * 7 * 24 * 60 * 60 * 1000) - 1;
+                            
+                            if (taskStartMs <= weekEndMs && taskEndMs >= weekStartMs) {
+                                detailedGanttHTML += `<td><div class="gantt-fill"></div></td>`;
+                                excelRow.push('Active'); // Tag for Excel
+                            } else {
+                                detailedGanttHTML += `<td></td>`;
+                                excelRow.push('');
+                            }
+                        }
+                        detailedGanttHTML += `</tr>`;
+                        finalExcelData.push(excelRow);
+                    });
+                    
+                    detailedGanttHTML += `</tbody></table>`;
+                    document.getElementById('detailed-gantt-container').innerHTML = detailedGanttHTML;
+                }
+            }
+        }
+
+        // -----------------------------------------------------
+        // CHART RENDERING 
+        // -----------------------------------------------------
+        function renderCharts() {
+            if (lineChartDash) lineChartDash.destroy();
+            if (donutChartDash) donutChartDash.destroy();
+            if (lineChartRes) lineChartRes.destroy();
+            if (donutChartRes) donutChartRes.destroy();
+
+            const lineOptions = { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: {display: false} }, 
+                scales: { y: { beginAtZero: true, suggestedMax: chartGlobalData.maxVal + 2 } } 
+            };
+            const donutOptions = { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 11} } } } 
+            };
+
+            if(document.getElementById('lineChartDash')) {
+                lineChartDash = new Chart(document.getElementById('lineChartDash').getContext('2d'), { type: 'line', data: { labels: chartGlobalData.labels, datasets: [{ label: 'Total Staff Required', data: chartGlobalData.data, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] }, options: lineOptions });
+            }
+            if(document.getElementById('donutChartDash')) {
+                donutChartDash = new Chart(document.getElementById('donutChartDash').getContext('2d'), { type: 'doughnut', data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] }, options: donutOptions });
+            }
+            if(document.getElementById('lineChartRes')) {
+                lineChartRes = new Chart(document.getElementById('lineChartRes').getContext('2d'), { type: 'line', data: { labels: chartGlobalData.labels, datasets: [{ label: 'Total Staff Required', data: chartGlobalData.data, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 }] }, options: lineOptions });
+            }
+            if(document.getElementById('donutChartRes')) {
+                donutChartRes = new Chart(document.getElementById('donutChartRes').getContext('2d'), { type: 'doughnut', data: { labels: donutGlobalData.labels, datasets: [{ data: donutGlobalData.data, backgroundColor: donutGlobalData.colors }] }, options: donutOptions });
+            }
+        }
+
+        // -----------------------------------------------------
+        // GANTT EXCEL EXPORT LOGIC
+        // -----------------------------------------------------
+        function downloadDetailedGanttExcel() {
+            try {
+                if(!finalExcelData || finalExcelData.length === 0) {
+                    alert("No data to export. Please calculate the plan first.");
+                    return;
+                }
+                
+                let wb = XLSX.utils.book_new();
+                let wsGantt = XLSX.utils.aoa_to_sheet(finalExcelData);
+                
+                // Format Column Widths for Excel readability
+                let colWidths = [
+                    { wch: 15 }, // Code
+                    { wch: 20 }, // Phase
+                    { wch: 45 }, // Task
+                    { wch: 15 }, // Duration
+                    { wch: 15 }, // Status
+                    { wch: 15 }, // %
+                    { wch: 12 }, // Start
+                    { wch: 12 }  // End
+                ]; 
+                
+                let totalWeeks = finalExcelData[0].length - 8; 
+                for(let i=0; i < totalWeeks; i++) colWidths.push({ wch: 6 });
+                wsGantt['!cols'] = colWidths;
+
+                XLSX.utils.book_append_sheet(wb, wsGantt, "Project Gantt Plan");
+                XLSX.writeFile(wb, "Detailed_Migration_Gantt_Plan.xlsx");
+
+            } catch(error) {
+                console.error("Excel Generation Error:", error);
+                alert("An error occurred while generating the Excel file.");
+            }
+        }
+    </script>
+</body>
+</html>
