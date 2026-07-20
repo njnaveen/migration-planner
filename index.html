@@ -620,13 +620,39 @@
             if(urlParams.has('bpw')) document.getElementById('batchesPerWeek').value = urlParams.get('bpw');
             if(urlParams.has('apps')) document.getElementById('totalApps').value = urlParams.get('apps');
             
+            // 1. Process New Payment & Set 5-Day Timer
             if (urlParams.has('razorpay_payment_id') || urlParams.has('payment_id')) {
-                localStorage.setItem('planner_unlocked', 'true');
+                // Calculate exactly 5 days from this current second
+                let expirationTime = new Date().getTime() + (5 * 24 * 60 * 60 * 1000); 
+                localStorage.setItem('planner_unlocked_until', expirationTime.toString());
+                
+                // Erase the old permanent token if they had one
+                localStorage.removeItem('planner_unlocked'); 
+                
                 window.history.replaceState({}, document.title, window.location.pathname);
-                alert("Payment successful! Unlocking your full dashboard and tools...");
+                alert("Payment successful! Unlocking your full dashboard for 5 days.");
             }
             
-            isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
+            // 2. Check if access is still valid
+            let unlockUntil = localStorage.getItem('planner_unlocked_until');
+            isUnlocked = false;
+
+            // Auto-migrate your current permanent access to the new 5-day system
+            if (localStorage.getItem('planner_unlocked') === 'true') {
+                let expirationTime = new Date().getTime() + (5 * 24 * 60 * 60 * 1000);
+                localStorage.setItem('planner_unlocked_until', expirationTime.toString());
+                localStorage.removeItem('planner_unlocked');
+                isUnlocked = true;
+            } else if (unlockUntil) {
+                // Check if current time is LESS than the expiration time
+                if (new Date().getTime() < parseInt(unlockUntil)) {
+                    isUnlocked = true; // Still active!
+                } else {
+                    // Time is up! Lock them out.
+                    localStorage.removeItem('planner_unlocked_until');
+                    isUnlocked = false; 
+                }
+            }
             
             if (isUnlocked) {
                 document.body.classList.add('is-unlocked');
