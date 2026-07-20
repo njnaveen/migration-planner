@@ -225,7 +225,7 @@
             <a class="nav-item" id="nav-timeline" onclick="switchMainView('timeline')"><i class="fa-solid fa-timeline"></i> Timeline & Waves</a>
             <a class="nav-item" id="nav-resources" onclick="switchMainView('resources')"><i class="fa-solid fa-users"></i> Resource Matrix</a>
             <a class="nav-item" id="nav-risks" onclick="switchMainView('risks')"><i class="fa-solid fa-triangle-exclamation"></i> Risks & Notes</a>
-            <a class="nav-item" id="nav-lifecycle" onclick="switchMainView('lifecycle')"><i class="fa-solid fa-arrows-spin"></i> Lifecycle Approach</a>
+            <a class="nav-item" id="nav-lifecycle" onclick="switchMainView('lifecycle')"><i class="fa-solid fa-diagram-project"></i> Deployment Phases</a>
         </div>
         
         <div class="snapshot-area">
@@ -581,11 +581,11 @@
             </div>
 
             <!-- ==========================================
-                 VIEW 7: DEVICE MANAGEMENT LIFECYCLE 
+                 VIEW 7: DEVICE DEPLOYMENT PHASES 
                  ========================================== -->
             <div id="view-lifecycle" class="main-view">
                 <div class="card">
-                    <div class="card-header"><i class="fa-solid fa-arrows-spin"></i> Architecture Blueprint & Operational Roadmap</div>
+                    <div class="card-header"><i class="fa-solid fa-arrows-rotate"></i> Architecture Blueprint & Operational Roadmap</div>
                     <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 15px 0;">Below is your dynamic device deployment approach plan divided across the 7 critical stages of the endpoint management architecture.</p>
                     
                     <div class="lifecycle-scroll">
@@ -675,7 +675,7 @@
                 'timeline': 'High-Level Timeline & Waves',
                 'resources': 'Resource Matrix & Analytics',
                 'risks': 'Risks, Assumptions & Recommendations',
-                'lifecycle': 'Device Management Lifecycle Approach'
+                'lifecycle': 'Device Deployment Phases'
             };
             document.getElementById('app-header-title').innerText = titles[viewId];
 
@@ -918,7 +918,7 @@
                     document.getElementById('time-gantt-container').innerHTML = ganttHTML;
 
                     // ==========================================
-                    // 5. DEVICE MANAGEMENT LIFECYCLE GENERATION
+                    // 5. DEVICE MANAGEMENT DEPLOYMENT PHASES
                     // ==========================================
                     let lifecycleData = [];
                     if (osType === 'windows') {
