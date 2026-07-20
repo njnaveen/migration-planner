@@ -311,7 +311,9 @@
                     
                     <div id="paywallSection" class="paywall">
                         <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Dashboard</h3>
-                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining 75% of your matrix, timeline, charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6;">
+                            Unlock full, unlimited access for <strong>5 Days</strong>. Generate as many custom plans as you need, including the complete <strong>Executive Dashboard, Excel Gantt Chart, Deployment Phases</strong>, and detailed Resource Matrices for just ₹99.99.
+                        </p>
                         <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TEht31x9wlMsfj" async> </script> </form>
                     </div>
 
@@ -585,7 +587,7 @@
                  ========================================== -->
             <div id="view-lifecycle" class="main-view">
                 <div class="card">
-                    <div class="card-header"><i class="fa-solid fa-arrows-rotate"></i> Architecture Blueprint & Operational Roadmap</div>
+                    <div class="card-header"><i class="fa-solid fa-diagram-project"></i> Architecture Blueprint & Operational Roadmap</div>
                     <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 15px 0;">Below is your dynamic device deployment approach plan divided across the 7 critical stages of the endpoint management architecture.</p>
                     
                     <div class="lifecycle-scroll">
@@ -637,7 +639,7 @@
             let unlockUntil = localStorage.getItem('planner_unlocked_until');
             isUnlocked = false;
 
-            // Auto-migrate your current permanent access to the new 5-day system
+            // Auto-migrate current permanent access to the new 5-day system
             if (localStorage.getItem('planner_unlocked') === 'true') {
                 let expirationTime = new Date().getTime() + (5 * 24 * 60 * 60 * 1000);
                 localStorage.setItem('planner_unlocked_until', expirationTime.toString());
