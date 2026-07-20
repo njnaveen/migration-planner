@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intune Migration Planner - DEV</title>
+    <title>Intune Migration Planner</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,26 +15,42 @@
             --primary: #0284c7; --primary-hover: #0369a1;
             --bg-light: #f1f5f9; --text-dark: #1e293b; --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --c-assess: #93c5fd; --c-found: #86efac; --c-pilot: #fde047; 
-            --c-mig: #c084fc; --c-hyp: #fca5a5;
         }
 
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; min-height: 100vh; color: var(--text-dark); }
         
-        /* STRICT PAYWALL OVERRIDES */
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg-light); 
+            display: flex; 
+            min-height: 100vh; 
+            color: var(--text-dark); 
+        }
+        
         body.is-unlocked #paywallSection { display: none !important; }
         body.is-unlocked #tab-2-actions { display: flex !important; }
 
         /* SMOOTH MOBILE SCROLLING */
-        .content-scroll, .dash-panel, div[style*="overflow"] { -webkit-overflow-scrolling: touch; }
+        .content-scroll, .dash-panel, .excel-grid-container, .lifecycle-scroll { -webkit-overflow-scrolling: touch; }
 
         /* MOBILE OVERLAY */
         #mobile-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99; }
         #mobile-menu-btn { display: none; background: none; border: none; font-size: 20px; color: var(--text-dark); cursor: pointer; margin-right: 15px; padding: 0; }
 
         /* SIDEBAR */
-        .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; position: sticky; top: 0; height: 100vh; }
+        .sidebar { 
+            width: 250px; 
+            background-color: var(--sidebar-bg); 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; 
+            z-index: 100;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
         .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121;}
         .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
         
@@ -98,7 +114,7 @@
         .sum-data .val { font-size: 24px; font-weight: bold; color: var(--text-dark); line-height: 1.1;}
         .sum-data .sub { font-size: 12px; color: var(--text-muted); margin-top: 3px;}
 
-        /* Full Dashboard Layout Grids */
+        /* Layout Grids */
         .dash-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
         .dash-row-3 { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 20px; margin-bottom: 20px; }
         .dash-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
@@ -113,23 +129,6 @@
         .matrix-table .bg-mig { background: #f3e8ff; }
         .matrix-table .bg-hyp { background: #ffe4e6; }
 
-        /* GANTT EXCEL TABLE */
-        .gantt-excel-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
-        .gantt-excel-table th, .gantt-excel-table td { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 10px; text-align: center; }
-        .gantt-excel-table th { background: #f8fafc; font-weight: 600; color: var(--text-dark); position: sticky; top: 0; z-index: 5; border-bottom: 2px solid var(--border-color); }
-        .gantt-task-col { text-align: left !important; width: 320px; min-width: 320px; font-weight: 500; position: sticky; left: 0; background: white; z-index: 4; }
-        .gantt-phase-row td { font-weight: bold; background: #f1f5f9 !important; color: #0f172a; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-        .gantt-phase-row .gantt-task-col { z-index: 6; } 
-        .gantt-bar-cell { height: 18px; width: 100%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); border-radius: 4px; }
-        
-        .gantt-bar-cell.inception { background-color: #e0f2fe; }
-        .gantt-bar-cell.discovery { background-color: #bae6fd; }
-        .gantt-bar-cell.design { background-color: #fed7aa; }
-        .gantt-bar-cell.prep { background-color: #fef08a; }
-        .gantt-bar-cell.pilot { background-color: #fde047; }
-        .gantt-bar-cell.mig { background-color: #c084fc; }
-        .gantt-bar-cell.post { background-color: #fca5a5; }
-
         .chart-wrapper { position: relative; height: 250px; width: 100%; }
         .chart-wrapper-small { position: relative; height: 200px; width: 100%; }
 
@@ -142,15 +141,33 @@
         .gantt-bar { position: absolute; height: 100%; border-radius: 8px; }
 
         /* DETAILED SPREADSHEET GANTT CSS */
-        .excel-grid { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .excel-grid-container { overflow-x: auto; width: 100%; }
+        .excel-grid { border-collapse: collapse; font-size: 12px; font-family: 'Segoe UI', Tahoma, sans-serif; min-width: 1000px; }
         .excel-grid th { background: #fef08a; color: #0f172a; font-weight: bold; padding: 10px 8px; border: 1px solid #cbd5e1; position: sticky; top: 0; z-index: 5; text-align: center;}
         .excel-grid td { padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; white-space: nowrap;}
         
-        .excel-grid .col-code { position: sticky; left: 0; background: white; z-index: 4; font-weight: bold; color: #64748b;}
-        .excel-grid .col-phase { position: sticky; left: 60px; background: white; z-index: 4; font-weight: bold; text-align: left;}
-        .excel-grid .col-task { position: sticky; left: 180px; background: white; z-index: 4; text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;}
+        .excel-grid .col-code { font-weight: bold; color: #64748b;}
+        .excel-grid .col-phase { font-weight: bold; text-align: left;}
+        .excel-grid .col-task { text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;}
+        .gantt-fill { background-color: #facc15; border-radius: 2px; height: 16px; width: 100%; min-width: 20px;}
+
+        /* DEVICE MANAGEMENT LIFECYCLE CSS */
+        .lifecycle-scroll { overflow-x: auto; width: 100%; margin-top: 15px; padding-bottom: 10px; }
+        .lifecycle-container { display: flex; gap: 20px; min-width: 1600px; }
+        .lifecycle-card { flex: 1; background: white; border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .lifecycle-card-header { padding: 15px; color: white; font-weight: bold; text-align: center; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; flex-direction: column; gap: 4px; }
+        .lifecycle-card-body { padding: 15px; flex: 1; display: flex; flex-direction: column; gap: 14px; font-size: 12px; }
+        .lifecycle-section-title { font-weight: 700; text-transform: uppercase; font-size: 10px; color: var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 3px; margin-bottom: 5px; letter-spacing: 0.5px; }
+        .lifecycle-scope-badge { background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border-left: 3px solid #0284c7; font-weight: bold; font-size: 11px; margin-top: 5px; color: #0f172a; }
+        .lifecycle-bau-badge { background: #fff7ed; padding: 6px 10px; border-radius: 4px; border-left: 3px solid #ea580c; font-weight: bold; font-size: 11px; margin-top: 5px; color: #7c2d12; }
         
-        .gantt-fill { background-color: #facc15; border-radius: 2px; height: 16px; width: 100%; }
+        .phase-bg-1 { background: #059669; } 
+        .phase-bg-2 { background: #0d9488; } 
+        .phase-bg-3 { background: #2563eb; } 
+        .phase-bg-4 { background: #7c3aed; } 
+        .phase-bg-5 { background: #ea580c; } 
+        .phase-bg-6 { background: #eab308; color: #0f172a !important; } 
+        .phase-bg-7 { background: #dc2626; } 
 
         .paywall { text-align: center; background: #f8fafc; padding: 40px; border: 1px dashed #cbd5e1; border-radius: 8px; margin-top: 20px; }
         .paywall h3 { margin-top: 0; color: var(--text-dark); font-size: 18px;}
@@ -164,27 +181,20 @@
         .tab-content { display: none; animation: fadeIn 0.2s; }
         .tab-content.active { display: block; }
 
-        /* =======================================================
-           MOBILE RESPONSIVENESS (MEDIA QUERIES)
-           ======================================================= */
+        /* MEDIA QUERIES */
         @media (max-width: 950px) {
             #mobile-menu-btn { display: inline-block; }
             #mobile-overlay.active { display: block; }
-            
             .sidebar { position: fixed; left: -260px; height: 100vh; transition: left 0.3s ease; box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
             .sidebar.open { left: 0; }
-            
             .header { padding: 15px; }
             .header h2 { font-size: 16px; }
             .content-scroll { padding: 15px; }
-            
             .grid-2, .dash-row-2, .dash-row-3, .dash-row-4 { grid-template-columns: 1fr; }
             .summary-grid { grid-template-columns: 1fr 1fr; }
-            
             .input-group { min-width: 100%; }
             .flex-between { flex-direction: column; gap: 15px; align-items: stretch; }
             .btn-action { width: 100%; justify-content: center;}
-
             .stepper { flex-wrap: wrap; gap: 10px; border-bottom: none; padding-bottom: 0; margin-bottom: 15px;}
             .step { width: 100%; border-bottom: 1px solid var(--border-color); padding: 10px; margin-bottom: 0 !important; }
             .step.active { border-bottom: 2px solid var(--primary); }
@@ -194,9 +204,6 @@
             .summary-grid { grid-template-columns: 1fr; }
             .header-actions button { padding: 6px 10px; font-size: 12px; }
             .header-actions button span { display: none; }
-            
-            /* Remove Sticky positioning on small phones to maximize table space */
-            .excel-grid .col-phase, .excel-grid .col-code { position: static; }
         }
     </style>
 </head>
@@ -218,6 +225,7 @@
             <a class="nav-item" id="nav-timeline" onclick="switchMainView('timeline')"><i class="fa-solid fa-timeline"></i> Timeline & Waves</a>
             <a class="nav-item" id="nav-resources" onclick="switchMainView('resources')"><i class="fa-solid fa-users"></i> Resource Matrix</a>
             <a class="nav-item" id="nav-risks" onclick="switchMainView('risks')"><i class="fa-solid fa-triangle-exclamation"></i> Risks & Notes</a>
+            <a class="nav-item" id="nav-lifecycle" onclick="switchMainView('lifecycle')"><i class="fa-solid fa-diagram-project"></i> Deployment Phases</a>
         </div>
         
         <div class="snapshot-area">
@@ -270,19 +278,21 @@
                             </div>
                             <div class="input-group">
                                 <label>Total Devices</label>
-                                <input type="number" id="totalDevices" value="50000">
+                                <input type="number" id="totalDevices" value="15000">
                             </div>
-                            <div class="input-group">
-                                <label>Devices per Batch</label>
-                                <input type="number" id="batchSize" value="2500">
-                            </div>
-                            <div class="input-group">
-                                <label>Target Batches / Week</label>
-                                <input type="number" id="batchesPerWeek" value="1">
-                            </div>
-                            <div class="input-group" id="appsContainer">
-                                <label>Total Apps to Package</label>
-                                <input type="number" id="totalApps" value="400">
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <label>Devices per Batch</label>
+                                    <input type="number" id="batchSize" value="500">
+                                </div>
+                                <div class="input-group">
+                                    <label>Target Batches / Week</label>
+                                    <input type="number" id="batchesPerWeek" value="1">
+                                </div>
+                                <div class="input-group" id="appsContainer">
+                                    <label>Total Apps to Package</label>
+                                    <input type="number" id="totalApps" value="50">
+                                </div>
                             </div>
                         </div>
                         <div class="flex-between">
@@ -301,7 +311,7 @@
                     
                     <div id="paywallSection" class="paywall">
                         <h3><i class="fa-solid fa-lock" style="color: #cbd5e1; margin-right: 10px;"></i> Unlock the Full Dashboard</h3>
-                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining dashboard of your matrix, timeline, Gantt charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">The remaining 75% of your matrix, timeline, charts, and executive dashboards are locked. Unlock full access for just ₹99.99.</p>
                         <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_TEht31x9wlMsfj" async> </script> </form>
                     </div>
 
@@ -481,8 +491,8 @@
                     </button>
                 </div>
 
-                <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; min-height: 500px;">
-                    <div style="overflow: auto; flex: 1; padding: 0; min-height: 400px;" id="detailed-gantt-container">
+                <div class="card" style="padding: 0;">
+                    <div class="excel-grid-container" id="detailed-gantt-container">
                         <!-- Table generated dynamically based on OS -->
                     </div>
                 </div>
@@ -570,12 +580,27 @@
                 </div>
             </div>
 
+            <!-- ==========================================
+                 VIEW 7: DEVICE DEPLOYMENT PHASES 
+                 ========================================== -->
+            <div id="view-lifecycle" class="main-view">
+                <div class="card">
+                    <div class="card-header"><i class="fa-solid fa-arrows-rotate"></i> Architecture Blueprint & Operational Roadmap</div>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 15px 0;">Below is your dynamic device deployment approach plan divided across the 7 critical stages of the endpoint management architecture.</p>
+                    
+                    <div class="lifecycle-scroll">
+                        <div class="lifecycle-container" id="lifecycle-cards-injector">
+                            <!-- Populated dynamically via JavaScript mapping -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <!-- APPLICATION LOGIC -->
     <script>
-        // Dual chart instances to allow rendering on multiple tabs simultaneously
         let lineChartDash = null;
         let donutChartDash = null;
         let lineChartRes = null;
@@ -583,12 +608,9 @@
 
         let chartGlobalData = { labels: [], data: [], maxVal: 0 };
         let donutGlobalData = { labels: [], data: [], colors: [] };
-        
-        // Global object to store Gantt data for Excel Export
         let finalExcelData = [];
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Check for URL parameters passed from Lzebra.com Embed Widget
             const urlParams = new URLSearchParams(window.location.search);
             let hasIncomingData = false;
             
@@ -598,82 +620,65 @@
             if(urlParams.has('bpw')) document.getElementById('batchesPerWeek').value = urlParams.get('bpw');
             if(urlParams.has('apps')) document.getElementById('totalApps').value = urlParams.get('apps');
             
-            // Handle Razorpay's specific payment ID parameter
             if (urlParams.has('razorpay_payment_id') || urlParams.has('payment_id')) {
                 localStorage.setItem('planner_unlocked', 'true');
-                // Clean the URL so the payment ID doesn't stay in the address bar
                 window.history.replaceState({}, document.title, window.location.pathname);
                 alert("Payment successful! Unlocking your full dashboard and tools...");
             }
             
             isUnlocked = (localStorage.getItem('planner_unlocked') === 'true');
             
-            // STRICT CSS ENFORCEMENT: Kill the paywall entirely if unlocked
             if (isUnlocked) {
                 document.body.classList.add('is-unlocked');
                 let pw = document.getElementById('paywallSection');
-                if (pw) { pw.innerHTML = ''; } // Destroy the Razorpay script
+                if (pw) { pw.innerHTML = ''; }
             }
 
             document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
             
-            // Initial calculations
             handlePlatformChange();
             calculatePlan();
 
-            // If user arrived from the embed widget, handle view routing
             if(hasIncomingData && !isUnlocked) {
-                switchMainView('planner'); // Force them to the planner to see the paywall if not unlocked
+                switchMainView('planner');
             } else if (hasIncomingData && isUnlocked) {
-                switchMainView('dashboard'); // Go straight to dashboard if already unlocked
+                switchMainView('dashboard');
             }
         });
 
-        // -----------------------------------------------------
-        // MOBILE OVERLAY MENU LOGIC
-        // -----------------------------------------------------
         function toggleMobileMenu() {
             document.querySelector('.sidebar').classList.toggle('open');
             document.getElementById('mobile-overlay').classList.toggle('active');
         }
 
-        // -----------------------------------------------------
-        // SIDEBAR NAVIGATION LOGIC
-        // -----------------------------------------------------
         function switchMainView(viewId) {
-            // Paywall Check for Protected Views
-            if (!isUnlocked && (viewId === 'dashboard' || viewId === 'gantt' || viewId === 'timeline' || viewId === 'resources' || viewId === 'risks')) {
+            if (!isUnlocked && (viewId === 'dashboard' || viewId === 'gantt' || viewId === 'timeline' || viewId === 'resources' || viewId === 'risks' || viewId === 'lifecycle')) {
                 alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
                 return;
             }
 
-            // Mobile menu auto-close
             if(window.innerWidth <= 950) {
                 document.querySelector('.sidebar').classList.remove('open');
                 document.getElementById('mobile-overlay').classList.remove('active');
             }
 
-            // Hide all views
             document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
-            // Remove active highlight from sidebar items
             document.querySelectorAll('.sidebar .nav-item').forEach(n => n.classList.remove('active'));
 
-            // Show selected view & highlight sidebar item
             document.getElementById('view-' + viewId).classList.add('active');
             document.getElementById('nav-' + viewId).classList.add('active');
 
-            // Update Header Title based on the view
             const titles = {
                 'planner': 'Planner Setup',
                 'dashboard': 'Executive Dashboard',
                 'gantt': 'Project Gantt Chart Plan',
                 'timeline': 'High-Level Timeline & Waves',
                 'resources': 'Resource Matrix & Analytics',
-                'risks': 'Risks, Assumptions & Recommendations'
+                'risks': 'Risks, Assumptions & Recommendations',
+                'lifecycle': 'Device Deployment Phases'
             };
             document.getElementById('app-header-title').innerText = titles[viewId];
 
-            // Render Chart.js graphs dynamically when tabs open
             if (viewId === 'dashboard' || viewId === 'resources') {
                 setTimeout(() => { renderCharts(); }, 50); 
             }
@@ -691,9 +696,6 @@
             switchWizardTab(tabIndex);
         }
 
-        // -----------------------------------------------------
-        // DATA & MATH LOGIC
-        // -----------------------------------------------------
         function handlePlatformChange() {
             let os = document.getElementById('osType').value;
             document.getElementById('appsContainer').style.display = (os === 'mobile') ? 'none' : 'block';
@@ -739,7 +741,6 @@
             
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
                 
-                // Base Month Math for Matrices
                 let inceptionM = 1, discoveryM = 1, designM = 1, prepM = 1, pilotM = 1, hypercareM = 2;
                 if(osType === 'windows') { prepM = 2; discoveryM = 2; }
                 if(osType === 'mobile' || osType === 'mac') { hypercareM = 1; }
@@ -752,20 +753,25 @@
                 let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((prepM * 4.33) * 100)));
 
                 let totalMonths = inceptionM + discoveryM + designM + prepM + pilotM + migrationM + hypercareM;
-                let visiblePoint = Math.ceil(totalMonths * 0.25); // For Paywall preview
+                let visiblePoint = Math.ceil(totalMonths * 0.25);
 
                 let startDateStr = document.getElementById('date-start').value || new Date().toISOString().split('T')[0];
                 
-                // Calculate simple milestone dates based on proportional logic
                 let pilotDate = addDaysToDate(startDateStr, (inceptionM + discoveryM + designM + prepM) * 30);
                 let prodDate = addDaysToDate(pilotDate, pilotM * 30);
                 document.getElementById('date-pilot').value = pilotDate;
                 document.getElementById('date-prod').value = prodDate;
                 
-                // 2. Migration Waves Table
+                let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
+                let migrationScopeSize = devices - pilotSize;
+
+                // 2. Dynamic BAU Operations Math Formula
+                let bauPilotStaff = Math.max(1, Math.ceil(pilotSize / 250));
+                let bauMigrationStaff = Math.max(2, Math.ceil(actualWeeklyThroughput / 400));
+
+                // 3. Migration Waves Table
                 let waveTable = `<tr><th>Wave Name</th><th>Target Devices</th><th>Status</th></tr>`;
                 let remDevs = devices;
-                let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
                 if(pilotSize > 0) { waveTable += `<tr><td>Pilot Phase</td><td>${pilotSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`; remDevs -= pilotSize; }
                 
                 let waveNum = 1;
@@ -784,7 +790,7 @@
                 document.getElementById('dash-waves-table').innerHTML = waveTable;
                 document.getElementById('view-waves-table').innerHTML = waveTable;
 
-                // 3. FTE Matrix Generation
+                // 4. FTE Matrix Generation
                 function getFTE(peak, role, m) {
                     if (peak === 0) return 0;
                     let phase = "";
@@ -873,7 +879,6 @@
                 document.getElementById('dash-matrix-container').innerHTML = matrixHTML; 
                 document.getElementById('view-matrix-container').innerHTML = matrixHTML; 
 
-                // 4. Update Summary Statistics Globally
                 let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
                 let totalBatches = Math.ceil(devices / batchSize);
                 let goLiveMonth = inceptionM + discoveryM + designM + prepM + pilotM + 1;
@@ -894,7 +899,6 @@
                     document.getElementById('dash-waves').innerText = totalBatches;
                     document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
 
-                    // Simple Dashboard Gantt
                     let ganttHTML = `<div class="gantt-header">`;
                     for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
                     ganttHTML += `</div>`;
@@ -914,6 +918,88 @@
                     document.getElementById('time-gantt-container').innerHTML = ganttHTML;
 
                     // ==========================================
+                    // 5. DEVICE MANAGEMENT DEPLOYMENT PHASES
+                    // ==========================================
+                    let lifecycleData = [];
+                    if (osType === 'windows') {
+                        lifecycleData = [
+                            { nr: "01", title: "Plan & Prepare", obj: "Understand environment, business needs and build a roadmap for Windows device management.", acts: ["Discover devices (AD, Azure AD, SCCM, Excel, etc.)", "Assess OS versions & hardware readiness", "Identify business & security requirements", "Analyze compliance, risks & gaps", "Define scope, priorities & timeline"], tech: "Microsoft Intune, Microsoft Entra ID, Azure AD Connect, MS Graph API", deliv: "Assessment Report, Readiness & Gap Analysis, Device Inventory Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Scope: Full Assessment of ${devices.toLocaleString()} Endpoints`, bau: "" },
+                            { nr: "02", title: "Enroll & Onboard", obj: "Securely onboard Windows devices into management platform.", acts: ["Configure enrollment methods (Autopilot, Manual, Bulk)", "Prepare Autopilot (Hash upload & profiles)", "User driven or Self-deploying mode setup", "Assign users, groups & roles", "Validate device ownership & compliance"], tech: "Windows Autopilot, Enrollment Status Page, Intune Connector, Bulk Enrollment", deliv: "Enrollment Strategy, Autopilot Deployment Profiles, Enrollment Reports, User/Device Assignment Report", out: "Seamless & Secure Onboarding", scope: `Initial Strategy Implementation Plan`, bau: "" },
+                            { nr: "03", title: "Configure & Deploy", obj: "Deploy configurations, applications and policies to enable a productive and secure experience.", acts: ["Deploy configuration profiles (Device, User, Security)", "Deploy applications (Win32, Store, LOB)", "Configure scripts, remediations & proactive actions", "Setup Windows Update for Business", "Configure device settings & preferences"], tech: "Configuration Profiles, Win32 Apps, PowerShell Scripts, Windows Update for Business", deliv: "Configuration & Policy Catalog, Application Deployment Plan, Update & Patch Strategy, Deployment Reports", out: "Consistent & Standardized Environment", scope: `Target Application Packages: ${totalApps}`, bau: "" },
+                            { nr: "04", title: "Secure & Comply", obj: "Enforce security policies, ensure compliance and protect devices and data.", acts: ["Enforce security policies (BitLocker, Firewall, AV, etc.)", "Configure Conditional Access & device compliance", "Enable Defender for Endpoint & Security Baselines", "Manage certificates, VPN, Wi-Fi & remediation", "Monitor threats, vulnerabilities & remediation"], tech: "Defender for Endpoint, Compliance Policies, Conditional Access, BitLocker & Encryption", deliv: "Security Baseline Report, Compliance & Risk Reports, Policy & Profile Documentation, Threat & Vulnerability Report", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: Security Baselines Enforced`, bau: "" },
+                            { nr: "05", title: "Manage & Support", obj: "Provide end-user support, monitor device health and ensure smooth operations.", acts: ["Monitor device health & performance", "Remote help & troubleshooting", "Manage incidents & service requests", "Software updates & patch compliance", "Manage app protection & data policies", "Communicate with users"], tech: "Remote Help, Endpoint Analytics, Service Desk Integration, Proactive Remediations", deliv: "Support & Incident Reports, Device Health Dashboard, Patch Compliance Reports, User Communication Logs", out: "High Availability & User Productivity", scope: `Pilot Scale: ${pilotSize.toLocaleString()} Endpoints`, bau: `BAU Support: ~${bauPilotStaff} (Pilot) / ~${bauMigrationStaff} (Mass Mig) Staff` },
+                            { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Finalize wave distribution schedules and automation targets", "Trigger user communications templates and instructions", "Monitor deployment completion rates across target rings", "Triage immediate deployment roadblocks or policy errors", "Analyze post-migration validation signals"], tech: "Intune Deployment Rings, Power BI Dashboards, Active Directory Sync", deliv: "Wave Velocity Reports, End-User Sign-off Logs, Migration Tracking Dashboard, Quality Gate Clearances", out: "Optimized Performance & Better Experience", scope: `Mass Wave Scope: ${migrationScopeSize.toLocaleString()} Devices`, bau: "" },
+                            { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Remove active group policies (GPOs) from the legacy environment", "Wipe client footprint or unenroll from legacy local control systems", "Decommission obsolete local hosting or staging servers", "Clean up stale Active Directory computer objects", "Dispose or refresh physical corporate hardware safely"], tech: "Active Directory Administrative Center, Wipe Actions, Asset Lifecycle Automation", deliv: "Legacy Environment Offboarding Report, Stale Object Deletion Log, Hardware Disposition Ledger", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear`, bau: "" }
+                        ];
+                    } else if (osType === 'mobile') {
+                        lifecycleData = [
+                            { nr: "01", title: "Plan & Prepare", obj: "Assess environment, define strategy and build a robust mobility roadmap.", acts: ["Assess devices, users, apps and OS versions", "Define enrollment strategy (Company/Personal/Shared)", "Identify compliance & security requirements", "Define policies, roles & success metrics"], tech: "Microsoft Intune, Apple Business Manager (ABM), Android Enterprise", deliv: "Mobility Strategy Document, Enrollment & Security Plan, Risk & Compliance Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Total Mobile Scope: ${devices.toLocaleString()} Units`, bau: "" },
+                            { nr: "02", title: "Enroll & Register", obj: "Securely onboard devices using zero-touch/zero-click enrollment.", acts: ["iOS: Apple Business Manager enrollment (ADE)", "Android: Zero Touch / Knox Mobile Enrollment", "User or Admin enrollment", "Assign users, profiles & apps", "Validate device ownership & user identity"], tech: "ABM / ADE, Zero Touch, OEM Partners (Knox, etc.)", deliv: "Enrolled Devices Log, Enrollment Reports, User Assignment Report, Device Ownership Verified", out: "Seamless & Secure Onboarding", scope: `Target Throughput: ${actualWeeklyThroughput}/Week`, bau: "" },
+                            { nr: "03", title: "Configure & Deploy", obj: "Configure devices, apps and policies to ensure secure productivity.", acts: ["Deploy configuration profiles (Wi-Fi, VPN, Email, APN)", "Install enterprise apps (VPP / Managed Play)", "Apply security & compliance policies", "Configure restrictions, features & settings", "Deploy certificates & trusted networks"], tech: "Configuration Profiles, Managed Apps, Certs & Policies", deliv: "Configuration Profile List, App Deployment Report, Policy Assignment Report, Certificate Deployment Log", out: "Consistent & Standardized Environment", scope: `Shared Mode: No User Affinity`, bau: "" },
+                            { nr: "04", title: "Secure & Comply", obj: "Enforce security, monitor compliance and protect data & devices.", acts: ["Enforce compliance policies (Jailbreak/Root, OS, Encryption)", "Enable device encryption & passcode", "Apply Conditional Access", "App protection policies (MAM)", "Monitor threats & vulnerabilities"], tech: "Conditional Access, Defender for Endpoint, App Protection Policy", deliv: "Compliance Reports, Security Baseline Report, Threat & Risk Reports, Policy Compliance Status", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: MAM Data Isolation`, bau: "" },
+                            { nr: "05", title: "Manage & Support", obj: "Support users, manage changes and maintain service quality.", acts: ["Remote support & troubleshooting", "Manage apps, content & updates", "Monitor device health & performance", "Manage incidents & service requests", "Communicate with users"], tech: "Remote Help, Device Health Monitoring, Service Desk Integration", deliv: "Support Tickets & Resolution Reports, Device Health Dashboard, User Communication Logs, SLA Reports", out: "High Availability & User Productivity", scope: `Pilot Scale: ${pilotSize.toLocaleString()} Endpoints`, bau: `BAU Support: ~${bauPilotStaff} (Pilot) / ~${bauMigrationStaff} (Mass Mig) Staff` },
+                            { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Execute zero-touch profile switches for active deployment waves", "Send corporate re-enrollment notification structures to users", "Track migration velocity metrics via live dashboard indicators", "Resolve user identity or certificate mapping issues instantly", "Monitor profile push success across active device types"], tech: "Apple Business Manager tokens, Android Play Store Sync, Intune Device Groups", deliv: "Wave Conversion Logs, Device Enrollment Metrics, Operational Support Logs", out: "Optimized Performance & Better Experience", scope: `Scale Run: ${migrationScopeSize.toLocaleString()} Rollouts`, bau: "" },
+                            { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Unenroll and retire mobile assets from the old MDM environment (AirWatch / Workspace ONE / MobileIron)", "Revoke legacy enterprise certificates and specialized trust tokens", "Remove legacy application profiles and container structures cleanly", "Clear device tracking associations from the historical asset database", "Decommission old management sync servers or cloud connection channels"], tech: "Legacy UEM Console, MDM Command API, Token Revocation Engines", deliv: "Legacy Environment Offboarding Report, Enterprise Container Wipe Logs, Asset Retirement Sheet", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear`, bau: "" }
+                        ];
+                    } else { // Mac
+                        lifecycleData = [
+                            { nr: "01", title: "Plan & Prepare", obj: "Understand environment, business needs and build a roadmap for macOS device management.", acts: ["Discover macOS devices (Intune, Apple Business Manager, AD, etc.)", "Assess OS versions & hardware compatibility", "Identify business & security requirements", "Analyze compliance, risks & gaps", "Define scope, priorities & timeline"], tech: "Apple Business Manager, Microsoft Intune, Microsoft Entra ID", deliv: "Assessment Report, Readiness & Gap Analysis, Device Inventory Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Scope: ${devices.toLocaleString()} Mac Systems`, bau: "" },
+                            { nr: "02", title: "Enroll & Onboard", obj: "Securely onboard Mac devices and prepare them for management.", acts: ["Enroll Macs via Apple Business Manager (Automated Device Enrollment)", "Configure enrollment in Microsoft Intune", "Configure User or Device Enrollment", "Assign users, groups & roles", "Validate device ownership & supervision"], tech: "Apple Configurator, Automated Device Enrollment, Intune Enrollment", deliv: "Enrollment Strategy, ADE Enrollment Report, Device Ownership Verified, Enrollment Completion Report", out: "Seamless & Secure Onboarding", scope: `Weekly Batch: ${batchSize.toLocaleString()} Devices`, bau: "" },
+                            { nr: "03", title: "Configure & Deploy", obj: "Deploy configurations, apps and settings to deliver a secure, productive Mac experience.", acts: ["Deploy configuration profiles (Wi-Fi, VPN, Email, SSO, etc.)", "Deploy apps (App Store, VPP, Custom Apps)", "Configure scripts & remediation", "Setup FileVault encryption & Gatekeeper", "Configure device settings & preferences"], tech: "Configuration Profiles, Intune Apps, Scripts & Remediations", deliv: "Configuration Profile List, Application Deployment Report, Policy Assignment Report, Script Deployment Report", out: "Consistent & Standardized Environment", scope: `Target Apps: ${totalApps} Built`, bau: "" },
+                            { nr: "04", title: "Secure & Comply", obj: "Enforce security policies, ensure compliance and protect devices and data.", acts: ["Enforce compliance policies (FileVault, Firewall, OS Update, Password)", "Enable Endpoint Protection (Defender for Endpoint)", "Apply Conditional Access & App Protection", "Manage certificates, VPN, and Wi-Fi networks", "Monitor threats & vulnerabilities"], tech: "Microsoft Defender for Endpoint, FileVault Encryption, Conditional Access", deliv: "Compliance Baseline Report, Security Baseline Report, Threat & Vulnerability Report, Certificate & Network Report", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: Platform SSO Verification`, bau: "" },
+                            { nr: "05", title: "Manage & Support", obj: "Provide day-to-day management and support to ensure devices run smoothly.", acts: ["Remote help & troubleshooting", "Manage incidents & service requests", "Software updates & patch management", "Monitor device health & performance", "Communicate with users"], tech: "Remote Help, Device Health Dashboard, Service Desk Integration", deliv: "Support & Incident Reports, Device Health Dashboard, User Communication Logs, Knowledge Base Articles", out: "High Availability & User Productivity", scope: `Target Pilot: ${pilotSize.toLocaleString()} Macs`, bau: `BAU Support: ~${bauPilotStaff} (Pilot) / ~${bauMigrationStaff} (Mass Mig) Staff` },
+                            { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Manage automated provisioning assignments across high-volume deployment waves", "Trigger enterprise enrollment flows dynamically for target user populations", "Track macOS enrollment completion health and setup times", "Address local agent initialization issues or configuration blocks", "Validate profile delivery success via centralized analytics reporting"], tech: "Automated Device Enrollment, Shell Scripting, Centralized Analytics Dashboards", deliv: "Wave Scale Analytics, Platform SSO Enrollment Metrics, Support Activity Ledger", out: "Optimized Performance & Better Experience", scope: `Production Target: ${migrationScopeSize.toLocaleString()} Macs`, bau: "" },
+                            { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Remove active device records from the legacy management environment (Jamf / MobileIron Pro)", "Clean up local legacy management agents and daemon binaries safely from assets", "Revoke historical enterprise security certificates and trust relationships", "Clear historical hardware associations from the legacy organization database", "Decommission old dedicated local staging servers or local connection lines"], tech: "Legacy Console Management, Terminal Command Lines, Certificate Authority Revocation", deliv: "Legacy Environment Offboarding Report, Agent Removal Audit Logs, Device Record Cleanliness Proof", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear`, bau: "" }
+                        ];
+                    }
+
+                    let lifecycHTML = "";
+                    lifecycleData.forEach((item, index) => {
+                        let actsList = "";
+                        item.acts.forEach(act => { actsList += `<li>• ${act}</li>`; });
+                        
+                        let bauElement = "";
+                        if(item.bau !== "") {
+                            bauElement = `<div class="lifecycle-bau-badge"><i class="fa-solid fa-headset" style="margin-right:6px;"></i>${item.bau}</div>`;
+                        }
+
+                        lifecycHTML += `
+                            <div class="lifecycle-card">
+                                <div class="lifecycle-card-header phase-bg-${index + 1}">
+                                    <span style="font-size: 20px; font-weight: 800;">${item.nr}</span>
+                                    <span>${item.title}</span>
+                                </div>
+                                <div class="lifecycle-card-body">
+                                    <div>
+                                        <div class="lifecycle-section-title">Objective</div>
+                                        <p style="margin:0; line-height:1.4; color:var(--text-dark); font-weight:500;">${item.obj}</p>
+                                        <div class="lifecycle-scope-badge"><i class="fa-solid fa-calculator" style="margin-right:6px;"></i>${item.scope}</div>
+                                        ${bauElement}
+                                    </div>
+                                    <div>
+                                        <div class="lifecycle-section-title">Key Activities</div>
+                                        <ul style="list-style:none; padding:0; margin:0; line-height:1.5; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
+                                            ${actsList}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <div class="lifecycle-section-title">Technologies Involved</div>
+                                        <p style="margin:0; font-style:italic; color:#0369a1;"><i class="fa-solid fa-microchip" style="margin-right:5px; font-size:10px;"></i>${item.tech}</p>
+                                    </div>
+                                    <div>
+                                        <div class="lifecycle-section-title">Key Deliverables</div>
+                                        <p style="margin:0; color:var(--text-dark);"><i class="fa-regular fa-file-lines" style="margin-right:5px; color:#059669;"></i>${item.deliv}</p>
+                                    </div>
+                                    <div style="margin-top:auto; padding-top:10px; border-top:1px dashed var(--border-color); font-weight:bold; color:#047857; display:flex; align-items:center; gap:5px;">
+                                        <i class="fa-regular fa-circle-check"></i> ${item.out}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('lifecycle-cards-injector').innerHTML = lifecycHTML;
+
+                    // ==========================================
                     // 6. GENERATE DETAILED WBS GANTT CHART (EXCEL STYLE)
                     // ==========================================
                     let rawTasks = [];
@@ -923,7 +1009,6 @@
                         rawTasks.push({ code: cCode++, phase: phase, name: name, days: days });
                     }
 
-                    // Scaled logic to ensure granular days sum exactly to the allocated months
                     if (osType === 'windows') {
                         addTask('Inception', 'Contract Execution - Client Sign-Off', 5);
                         addTask('Inception', 'Project Staffing', 5);
@@ -931,113 +1016,88 @@
                         addTask('Inception', 'Business Stakeholder Identification', 5);
                         addTask('Inception', 'Kick Off Meeting - Initial Scope', 5);
                         addTask('Inception', 'APB Project Plan Review', 5);
-                        
                         addTask('Discover', 'Device inventory report', 15);
                         addTask('Discover', 'Policies & Configuration Review', 15);
                         addTask('Discover', 'Use Case Identification', 10);
                         addTask('Discover', 'Required Apps Details and Information', 10);
                         addTask('Discover', 'GPO & Legacy Policy Assessment', 10);
-                        
                         addTask('Design', 'Capture Scope / Prerequisites', 8);
                         addTask('Design', 'Define Policies and restriction', 8);
                         addTask('Design', 'Create Required Group for migration', 7);
                         addTask('Design', 'List of LOBs Apps Details', 7);
-                        
                         addTask('Env Prep', 'Group Creation for UAT & Corp', 15);
                         addTask('Env Prep', 'Azure AD Join Configuration', 15);
-                        
                         addTask('Configuration', 'Intune Deployment & Restriction Policies', 8);
                         addTask('Configuration', 'Autopilot Profile for UAT & CORP', 8);
                         addTask('Configuration', 'Configure compliance restriction', 7);
                         addTask('Configuration', 'Deploy LOBs apps for CORP Devices', 7);
-                        
                         addTask('UAT / Pilot', 'Pilot Users Details & Selection', 5);
                         addTask('UAT / Pilot', 'Added the user into the Test group', 5);
                         addTask('UAT / Pilot', 'Test the Environment with Pilot users', 15);
                         addTask('UAT / Pilot', 'Sign-off on the POC', 5);
-                        
                         addTask('Migration', 'Comms sent to CORP users to enroll', 1);
                         addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1); 
-                        
                         addTask('Post Migration', 'Validate all migrated device policies', 10);
                         addTask('Post Migration', 'Address Migration Related Issue', 10);
                         addTask('Post Migration', 'Monitoring the environment', 10);
-                        
                         addTask('Training', 'Support end users services', 15);
                         addTask('Training', 'SOPs for the support', 15);
-                        
                     } else if (osType === 'mobile') {
                         addTask('Inception', 'Contract Execution - Client Sign-Off', 5);
                         addTask('Inception', 'Project Staffing', 5);
                         addTask('Inception', 'Business Stakeholder Identification', 10);
                         addTask('Inception', 'Kick Off Meeting - Initial Scope', 10);
-                        
                         addTask('Discover', 'Mobile Device inventory (ABM & AW) report', 10);
                         addTask('Discover', 'Policies & Configuration Review', 10);
                         addTask('Discover', 'Use Case Identification', 5);
                         addTask('Discover', 'Licenses Information', 5);
-                        
                         addTask('Design', 'Capture Scope / Prerequisites', 10);
                         addTask('Design', 'Define Mobile Policies and restriction', 10);
                         addTask('Design', 'List of Required Managed Apps', 10);
-                        
                         addTask('Env Prep', 'Group Creation for UAT & Corp', 5);
                         addTask('Env Prep', 'ABM / Android Enterprise Integration', 10);
-                        
                         addTask('Configuration', 'Deployment & Restriction Policies', 4);
                         addTask('Configuration', 'DEF Profile for UAT & CORP devices', 4);
                         addTask('Configuration', 'Configure compliance restriction', 3);
                         addTask('Configuration', 'Deploy Required Apps for Devices', 4);
-                        
                         addTask('UAT / Pilot', 'Pilot Users Details', 5);
                         addTask('UAT / Pilot', 'Test the Environment with Pilot users', 20);
                         addTask('UAT / Pilot', 'Sign-off on the POC', 5);
-                        
                         addTask('Migration', 'Comms sent to CORP users to re-enroll', 1);
                         addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1);
-                        
                         addTask('Post Migration', 'Validate all migrated devices', 5);
                         addTask('Post Migration', 'Monitoring the environment', 10);
                         addTask('Training', 'SOPs for the support', 15);
-                        
-                    } else { // Mac
+                    } else {
                         addTask('Inception', 'Contract Execution - Client Sign-Off', 10);
                         addTask('Inception', 'Project Staffing', 10);
                         addTask('Inception', 'Business Stakeholder Identification', 10);
-                        
                         addTask('Discover', 'Mac Device inventory report', 10);
                         addTask('Discover', 'Policies & Jamf Configuration Review', 10);
                         addTask('Discover', 'Use Case Identification', 10);
-                        
                         addTask('Design', 'Capture Scope / Prerequisites', 10);
                         addTask('Design', 'Define Policies and restriction', 10);
                         addTask('Design', 'Platform SSO Architecture Design', 10);
-                        
                         addTask('Env Prep', 'Group Creation for UAT & Corp', 5);
                         addTask('Env Prep', 'Apple Business Manager Integration', 10);
-                        
                         addTask('Configuration', 'Deployment & Restriction Policies', 5);
                         addTask('Configuration', 'FileVault & PPPC Profiles Configured', 5);
                         addTask('Configuration', 'Deploy LOBs apps (PKG/DMG)', 5);
-                        
                         addTask('UAT / Pilot', 'Pilot Users Details', 5);
                         addTask('UAT / Pilot', 'Test the Environment with Pilot users', 20);
                         addTask('UAT / Pilot', 'Sign-off on the POC', 5);
-                        
                         addTask('Migration', 'Comms sent to CORP users to re-enroll', 1);
                         addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1);
-                        
                         addTask('Post Migration', 'Validate all migrated devices', 5);
                         addTask('Post Migration', 'Monitoring the environment', 10);
                         addTask('Training', 'SOPs for the support', 15);
                     }
 
-                    // Calculate Dates and Weeks dynamically
                     let currentDate = startDateStr;
                     rawTasks.forEach(t => {
                         t.startDate = currentDate;
                         t.endDate = addDaysToDate(currentDate, t.days);
-                        currentDate = t.endDate; // Sequential waterfall
+                        currentDate = t.endDate;
                     });
                     
                     let projectStartMs = new Date(startDateStr).getTime();
@@ -1058,7 +1118,6 @@
                     for(let w=1; w<=totalWeeks; w++) { detailedGanttHTML += `<th>W${w}</th>`; }
                     detailedGanttHTML += `</tr></thead><tbody>`;
 
-                    // Prep Data for Excel Export
                     finalExcelData = [
                         ['Milestone Code', 'Phase', 'Task / Milestone', 'Duration (Days)', 'Status', '% Completed', 'Start Date', 'End Date']
                     ];
@@ -1090,7 +1149,7 @@
                             
                             if (taskStartMs <= weekEndMs && taskEndMs >= weekStartMs) {
                                 detailedGanttHTML += `<td><div class="gantt-fill"></div></td>`;
-                                excelRow.push('Active'); // Tag for Excel
+                                excelRow.push('Active');
                             } else {
                                 detailedGanttHTML += `<td></td>`;
                                 excelRow.push('');
@@ -1106,9 +1165,6 @@
             }
         }
 
-        // -----------------------------------------------------
-        // CHART RENDERING 
-        // -----------------------------------------------------
         function renderCharts() {
             if (lineChartDash) lineChartDash.destroy();
             if (donutChartDash) donutChartDash.destroy();
@@ -1141,41 +1197,22 @@
             }
         }
 
-        // -----------------------------------------------------
-        // GANTT EXCEL EXPORT LOGIC
-        // -----------------------------------------------------
         function downloadDetailedGanttExcel() {
             try {
                 if(!finalExcelData || finalExcelData.length === 0) {
                     alert("No data to export. Please calculate the plan first.");
                     return;
                 }
-                
                 let wb = XLSX.utils.book_new();
                 let wsGantt = XLSX.utils.aoa_to_sheet(finalExcelData);
-                
-                // Format Column Widths for Excel readability
-                let colWidths = [
-                    { wch: 15 }, // Code
-                    { wch: 20 }, // Phase
-                    { wch: 45 }, // Task
-                    { wch: 15 }, // Duration
-                    { wch: 15 }, // Status
-                    { wch: 15 }, // %
-                    { wch: 12 }, // Start
-                    { wch: 12 }  // End
-                ]; 
-                
+                let colWidths = [{ wch: 15 }, { wch: 20 }, { wch: 45 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 12 }]; 
                 let totalWeeks = finalExcelData[0].length - 8; 
                 for(let i=0; i < totalWeeks; i++) colWidths.push({ wch: 6 });
                 wsGantt['!cols'] = colWidths;
-
                 XLSX.utils.book_append_sheet(wb, wsGantt, "Project Gantt Plan");
                 XLSX.writeFile(wb, "Detailed_Migration_Gantt_Plan.xlsx");
-
             } catch(error) {
                 console.error("Excel Generation Error:", error);
-                alert("An error occurred while generating the Excel file.");
             }
         }
     </script>
