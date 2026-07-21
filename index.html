@@ -838,7 +838,7 @@
                     if (role === 'Dep') mult = (phase === "Pilot") ? 0.5 : (phase === "Migration") ? 1.0 : 0;
                     if (role === 'Hyp') mult = (phase === "Hypercare" || phase === "Migration") ? 1.0 : 0;
 
-                    return Math.max(1, Math.round(peak * mult));
+                    return mult === 0 ? 0 : Math.max(1, Math.round(peak * mult));
                 }
 
                 let reqArch = Math.max(1, Math.ceil(devices / 35000));
