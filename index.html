@@ -768,9 +768,11 @@
             
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
                 
-                let inceptionM = 1, discoveryM = 1, designM = 1, prepM = 1, pilotM = 1, hypercareM = 2;
-                if(osType === 'windows') { prepM = 2; discoveryM = 2; }
-                if(osType === 'mobile' || osType === 'mac') { hypercareM = 1; }
+                // Base timeline variables (1 = 1 month)
+            let inceptionM = 1, discoveryM = 1, designM = 1, prepM = 1, pilotM = 1, hypercareM = 2;
+
+            // Adjust Hypercare based on OS
+            if(osType === 'mobile' || osType === 'mac') { hypercareM = 1; }
 
                 let actualWeeklyThroughput = batchSize * batchesPerWeek;
                 let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
