@@ -765,451 +765,156 @@
             return d.toISOString().split('T')[0];
         }
 
-        function calculatePlan() {
+        // ==========================================
+        // SECURE "THIN CLIENT" CALCULATION API
+        // ==========================================
+        async function calculatePlan() {
             handlePlatformChange(); 
             let osType = document.getElementById('osType').value;
             let devices = parseInt(document.getElementById('totalDevices').value);
             let batchSize = parseInt(document.getElementById('batchSize').value);
             let batchesPerWeek = parseInt(document.getElementById('batchesPerWeek').value);
             let totalApps = parseInt(document.getElementById('totalApps').value) || 0;
-            
+            let startDateStr = document.getElementById('date-start').value || new Date().toISOString().split('T')[0];
+
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
                 
-                // Base timeline variables (1 = 1 month)
-            let inceptionM = 1, discoveryM = 1, designM = 1, prepM = 1, pilotM = 1, hypercareM = 2;
-
-            // Adjust Hypercare based on OS
-            if(osType === 'mobile' || osType === 'mac') { hypercareM = 1; }
-
-                let actualWeeklyThroughput = batchSize * batchesPerWeek;
-                let migrationWeeks = Math.ceil(devices / actualWeeklyThroughput);
-                let migrationM = Math.max(1, Math.ceil(migrationWeeks / 4.33));
-                
-                let deploy = (osType === 'mobile') ? Math.max(1, Math.ceil(actualWeeklyThroughput / 60)) : Math.max(1, Math.ceil(actualWeeklyThroughput / 600));
-                let appFTE = (osType === 'mobile') ? 0 : Math.max(1, Math.ceil(totalApps / ((prepM * 4.33) * 100)));
-
-                let totalMonths = inceptionM + discoveryM + designM + prepM + pilotM + migrationM + hypercareM;
-                
-                // Set 50% data masking boundary
-                let visiblePoint = Math.ceil(totalMonths * 0.5);
-
-                let startDateStr = document.getElementById('date-start').value || new Date().toISOString().split('T')[0];
-                
-                let pilotDate = addDaysToDate(startDateStr, (inceptionM + discoveryM + designM + prepM) * 30);
-                let prodDate = addDaysToDate(pilotDate, pilotM * 30);
-                document.getElementById('date-pilot').value = pilotDate;
-                document.getElementById('date-prod').value = prodDate;
-                
-                let pilotSize = Math.min(500, Math.ceil(devices * 0.05));
-                let migrationScopeSize = devices - pilotSize;
-
-                // 2. Migration Waves Table
-                let waveTable = `<tr><th>Wave Name</th><th>Target Devices</th><th>Status</th></tr>`;
-                let remDevs = devices;
-                if(pilotSize > 0) { waveTable += `<tr><td>Pilot Phase</td><td>${pilotSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`; remDevs -= pilotSize; }
-                
-                let waveNum = 1;
-                while(remDevs > 0) { 
-                    if(waveNum === 10 && remDevs > 0) {
-                        let remWaves = Math.ceil(remDevs / batchSize);
-                        waveTable += `<tr><td>Waves ${waveNum} to ${waveNum + remWaves - 1}</td><td>${remDevs.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`;
-                        remDevs = 0; 
-                    } else {
-                        let bSize = Math.min(batchSize, remDevs);
-                        waveTable += `<tr><td>Wave ${waveNum}</td><td>${bSize.toLocaleString()}</td><td><span class="status-dot dot-green"></span> Planned</td></tr>`;
-                        remDevs -= bSize;
-                        waveNum++;
-                    }
-                }
-                document.getElementById('dash-waves-table').innerHTML = waveTable;
-                document.getElementById('view-waves-table').innerHTML = waveTable;
-
-                // 3. FTE Calculation Engine (Corrected zero-multiplier floor)
-                function getFTE(peak, role, m) {
-                    if (peak === 0) return 0;
-                    let phase = "";
-                    if (m <= inceptionM) phase = "Inception";
-                    else if (m <= inceptionM + discoveryM) phase = "Discovery";
-                    else if (m <= inceptionM + discoveryM + designM) phase = "Design";
-                    else if (m <= inceptionM + discoveryM + designM + prepM) phase = "Prep";
-                    else if (m <= inceptionM + discoveryM + designM + prepM + pilotM) phase = "Pilot";
-                    else if (m <= totalMonths - hypercareM) phase = "Migration";
-                    else phase = "Hypercare";
-
-                    let mult = 0;
-                    if (role === 'Arch') mult = (phase === "Migration" || phase === "Hypercare") ? 0.5 : 1.0;
-                    if (role === 'End') mult = (phase === "Inception" || phase === "Hypercare") ? 0.5 : 1.0;
-                    if (role === 'App') mult = (phase === "Inception" || phase === "Hypercare" || phase === "Migration") ? 0 : 1.0;
-                    if (role === 'Gpo') mult = (phase === "Inception" || phase === "Hypercare") ? 0.5 : 1.0;
-                    if (role === 'Dep') mult = (phase === "Pilot") ? 0.5 : (phase === "Migration") ? 1.0 : 0;
-                    if (role === 'Hyp') mult = (phase === "Hypercare" || phase === "Migration") ? 1.0 : 0;
-
-                    return mult === 0 ? 0 : Math.max(1, Math.round(peak * mult));
-                }
-
-                let reqArch = Math.max(1, Math.ceil(devices / 35000));
-                let reqEnd = Math.max(1, Math.ceil(devices / 18000));
-
-                const roles = [
-                    ['Architects', 'Arch', reqArch, '#3b82f6'], 
-                    ['L3 Engineer', 'End', reqEnd, '#10b981'], 
-                    ['App Packaging', 'App', appFTE, '#f59e0b'], 
-                    ['GPO/Policy/CA Expert', 'Gpo', Math.max(1, Math.ceil(devices / 20000)), '#8b5cf6'], 
-                    ['Deployment Engineers', 'Dep', deploy, '#ec4899'], 
-                    ['Hypercare', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800)), '#64748b']
-                ];
-
-                // Build Table Headers
-                let matrixHeader = `<tr><td style="border: none; background: white;"></td><td colspan="${inceptionM+discoveryM}" class="bg-assess">Discovery & Design</td><td colspan="${designM+prepM}" class="bg-found">Preparation</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hypercare</td></tr>`;
-                matrixHeader += '<tr style="background: #f8fafc;"><td class="role-name">Role Name</td>';
-                for (let i = 1; i <= totalMonths; i++) { matrixHeader += `<td>M${i}</td>`; }
-                matrixHeader += '</tr>';
-
-                let monthlyTotals = new Array(totalMonths + 1).fill(0);
-                let peakFTE = 0, totalPersonMonths = 0;
-                
-                donutGlobalData = { labels: [], data: [], colors: [] };
-
-                let previewRows = '';
-                let fullRows = '';
-
-                roles.forEach(role => {
-                    if(role[1] === 'App' && osType === 'mobile') return;
-                    
-                    previewRows += `<tr><td class="role-name"><i class="fa-solid fa-user" style="color:${role[3]}; margin-right:8px;"></i>${role[0]}</td>`;
-                    fullRows += `<tr><td class="role-name"><i class="fa-solid fa-user" style="color:${role[3]}; margin-right:8px;"></i>${role[0]}</td>`;
-                    
-                    let rSum = 0;
-                    for (let i = 1; i <= totalMonths; i++) {
-                        let fteValue = getFTE(role[2], role[1], i);
-                        monthlyTotals[i] += fteValue; 
-                        rSum += fteValue;
-
-                        fullRows += `<td>${fteValue}</td>`;
-
-                        // 50% Masking Logic for Tab 2 Preview
-                        if (i > visiblePoint && !isUnlocked) {
-                            previewRows += '<td class="locked-cell">🔒</td>';
-                        } else {
-                            previewRows += `<td>${fteValue}</td>`;
-                        }
-                    }
-                    donutGlobalData.data.push(rSum);
-                    donutGlobalData.labels.push(role[0]);
-                    donutGlobalData.colors.push(role[3]);
-                    
-                    previewRows += '</tr>';
-                    fullRows += '</tr>';
+                // 1. Send data to your new secure backend
+                const response = await fetch('/api/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        osType: osType,
+                        devices: devices,
+                        batchSize: batchSize,
+                        batchesPerWeek: batchesPerWeek,
+                        totalApps: totalApps,
+                        isUnlocked: isUnlocked,
+                        startDateStr: startDateStr
+                    })
                 });
 
-                chartGlobalData = { labels: [], data: [], maxVal: 0 };
-                for(let m = 1; m <= totalMonths; m++) {
-                    totalPersonMonths += monthlyTotals[m];
-                    if(monthlyTotals[m] > peakFTE) peakFTE = monthlyTotals[m];
-                    chartGlobalData.labels.push(`M${m}`);
-                    chartGlobalData.data.push(monthlyTotals[m]);
-                }
-                chartGlobalData.maxVal = peakFTE;
+                // 2. Receive the safe calculated data
+                const data = await response.json();
 
-                let previewTotalRow = '<tr style="font-weight: bold; background: #f8fafc; color: var(--primary); border-top: 2px solid var(--border-color);"><td class="role-name">Total Combined FTE</td>';
-                let fullTotalRow = '<tr style="font-weight: bold; background: #f8fafc; color: var(--primary); border-top: 2px solid var(--border-color);"><td class="role-name">Total Combined FTE</td>';
+                // 3. Inject data into the UI (No math happens here!)
+                document.getElementById('date-pilot').value = data.pilotDate;
+                document.getElementById('date-prod').value = data.prodDate;
+                
+                document.getElementById('dash-waves-table').innerHTML = data.waveTable;
+                document.getElementById('view-waves-table').innerHTML = data.waveTable;
 
-                for (let i = 1; i <= totalMonths; i++) {
-                    fullTotalRow += `<td>${monthlyTotals[i]}</td>`;
-                    if (i > visiblePoint && !isUnlocked) {
-                        previewTotalRow += '<td class="locked-cell">🔒</td>';
-                    } else {
-                        previewTotalRow += `<td>${monthlyTotals[i]}</td>`;
-                    }
-                }
-                previewTotalRow += '</tr>';
-                fullTotalRow += '</tr>';
+                document.getElementById('tab2-matrix-container').innerHTML = data.previewMatrixHTML; 
+                document.getElementById('dash-matrix-container').innerHTML = data.fullMatrixHTML; 
+                document.getElementById('view-matrix-container').innerHTML = data.fullMatrixHTML; 
 
-                let previewMatrixHTML = '<table class="matrix-table">' + matrixHeader + previewRows + previewTotalRow + '</table>';
-                let fullMatrixHTML = '<table class="matrix-table">' + matrixHeader + fullRows + fullTotalRow + '</table>';
-
-                // Render preview matrix on Tab 2, full matrix on Dashboard/Resource views
-                document.getElementById('tab2-matrix-container').innerHTML = previewMatrixHTML; 
-                document.getElementById('dash-matrix-container').innerHTML = fullMatrixHTML; 
-                document.getElementById('view-matrix-container').innerHTML = fullMatrixHTML; 
-
-                let platformName = osType.charAt(0).toUpperCase() + osType.slice(1);
-                let totalBatches = Math.ceil(devices / batchSize);
-                let goLiveMonth = inceptionM + discoveryM + designM + prepM + pilotM + 1;
-
-                document.getElementById('snap-platform').innerText = platformName;
+                document.getElementById('snap-platform').innerText = osType.charAt(0).toUpperCase() + osType.slice(1);
                 document.getElementById('snap-devices').innerText = devices.toLocaleString();
 
                 if(isUnlocked) {
                     document.getElementById('paywallSection').style.display = 'none';
                     document.getElementById('tab-2-actions').style.display = 'flex';
                     
-                    document.getElementById('snap-duration').innerText = `${totalMonths} Months`;
-                    document.getElementById('dash-duration').innerText = `${totalMonths} Mo`;
-                    document.getElementById('snap-peak').innerText = peakFTE;
-                    document.getElementById('dash-peak').innerText = peakFTE;
-                    document.getElementById('snap-personmonths').innerText = totalPersonMonths;
-                    document.getElementById('dash-pm').innerText = totalPersonMonths;
-                    document.getElementById('dash-waves').innerText = totalBatches;
-                    document.getElementById('dash-golive').innerText = `M${goLiveMonth}`;
+                    document.getElementById('snap-duration').innerText = `${data.totalMonths} Months`;
+                    document.getElementById('dash-duration').innerText = `${data.totalMonths} Mo`;
+                    document.getElementById('snap-peak').innerText = data.peakFTE;
+                    document.getElementById('dash-peak').innerText = data.peakFTE;
+                    document.getElementById('snap-personmonths').innerText = data.totalPersonMonths;
+                    document.getElementById('dash-pm').innerText = data.totalPersonMonths;
+                    document.getElementById('dash-waves').innerText = data.totalBatches;
+                    document.getElementById('dash-golive').innerText = `M${data.goLiveMonth}`;
 
-                    let ganttHTML = `<div class="gantt-header">`;
-                    for(let i=1; i<=totalMonths; i+=2) ganttHTML += `<div class="gantt-month">M${i}</div>`;
-                    ganttHTML += `</div>`;
+                    document.getElementById('dash-gantt-container').innerHTML = data.ganttHTML;
+                    document.getElementById('time-gantt-container').innerHTML = data.ganttHTML;
                     
-                    function drawBar(name, st, dur, col) {
-                        let L = ((st - 1) / totalMonths) * 100;
-                        let W = (dur / totalMonths) * 100;
-                        return `<div class="gantt-row"><div class="gantt-label">${name}</div><div class="gantt-track"><div class="gantt-bar" style="left:${L}%; width:${W}%; background:${col};"></div></div></div>`;
-                    }
-                    ganttHTML += drawBar('Disc/Design', 1, inceptionM+discoveryM+designM, '#93c5fd');
-                    ganttHTML += drawBar('Preparation', 1+inceptionM+discoveryM+designM, prepM, '#86efac');
-                    ganttHTML += drawBar('Pilot', 1+inceptionM+discoveryM+designM+prepM, pilotM, '#fde047');
-                    ganttHTML += drawBar('Migration', 1+inceptionM+discoveryM+designM+prepM+pilotM, migrationM, '#c084fc');
-                    ganttHTML += drawBar('Hypercare', totalMonths-hypercareM+1, hypercareM, '#fca5a5');
+                    // Set global variables for charts & excel
+                    chartGlobalData = data.chartGlobalData;
+                    donutGlobalData = data.donutGlobalData;
+                    finalExcelData = data.finalExcelData;
                     
-                    document.getElementById('dash-gantt-container').innerHTML = ganttHTML;
-                    document.getElementById('time-gantt-container').innerHTML = ganttHTML;
-
-                    // ==========================================
-                    // 4. DEVICE MANAGEMENT DEPLOYMENT PHASES
-                    // ==========================================
-                    let lifecycleData = [];
-                    if (osType === 'windows') {
-                        lifecycleData = [
-                            { nr: "01", title: "Plan & Prepare", obj: "Understand environment, business needs and build a roadmap for Windows device management.", acts: ["Discover devices (AD, Azure AD, SCCM, Excel, etc.)", "Assess OS versions & hardware readiness", "Identify business & security requirements", "Analyze compliance, risks & gaps", "Define scope, priorities & timeline"], tech: "Microsoft Intune, Microsoft Entra ID, Azure AD Connect, MS Graph API", deliv: "Assessment Report, Readiness & Gap Analysis, Device Inventory Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Scope: Full Assessment of ${devices.toLocaleString()} Endpoints` },
-                            { nr: "02", title: "Enroll & Onboard", obj: "Securely onboard Windows devices into management platform.", acts: ["Configure enrollment methods (Autopilot, Manual, Bulk)", "Prepare Autopilot (Hash upload & profiles)", "User driven or Self-deploying mode setup", "Assign users, groups & roles", "Validate device ownership & compliance"], tech: "Windows Autopilot, Enrollment Status Page, Intune Connector, Bulk Enrollment", deliv: "Enrollment Strategy, Autopilot Deployment Profiles, Enrollment Reports, User/Device Assignment Report", out: "Seamless & Secure Onboarding", scope: `Initial Strategy Implementation Plan` },
-                            { nr: "03", title: "Configure & Deploy", obj: "Deploy configurations, applications and policies to enable a productive and secure experience.", acts: ["Deploy configuration profiles (Device, User, Security)", "Deploy applications (Win32, Store, LOB)", "Configure scripts, remediations & proactive actions", "Setup Windows Update for Business", "Configure device settings & preferences"], tech: "Configuration Profiles, Win32 Apps, PowerShell Scripts, Windows Update for Business", deliv: "Configuration & Policy Catalog, Application Deployment Plan, Update & Patch Strategy, Deployment Reports", out: "Consistent & Standardized Environment", scope: `Target Application Packages: ${totalApps}` },
-                            { nr: "04", title: "Secure & Comply", obj: "Enforce security policies, ensure compliance and protect devices and data.", acts: ["Enforce security policies (BitLocker, Firewall, AV, etc.)", "Configure Conditional Access & device compliance", "Enable Defender for Endpoint & Security Baselines", "Manage certificates, VPN, Wi-Fi & remediation", "Monitor threats, vulnerabilities & remediation"], tech: "Defender for Endpoint, Compliance Policies, Conditional Access, BitLocker & Encryption", deliv: "Security Baseline Report, Compliance & Risk Reports, Policy & Profile Documentation, Threat & Vulnerability Report", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: Security Baselines Enforced` },
-                            { nr: "05", title: "Manage & Support", obj: "Provide end-user support, monitor device health and ensure smooth operations.", acts: ["Monitor device health & performance", "Remote help & troubleshooting", "Manage incidents & service requests", "Software updates & patch compliance", "Manage app protection & data policies", "Communicate with users"], tech: "Remote Help, Endpoint Analytics, Service Desk Integration, Proactive Remediations", deliv: "Support & Incident Reports, Device Health Dashboard, Patch Compliance Reports, User Communication Logs", out: "High Availability & User Productivity", scope: `Pilot Scale: ${pilotSize.toLocaleString()} Endpoints` },
-                            { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Finalize wave distribution schedules and automation targets", "Trigger user communications templates and instructions", "Monitor deployment completion rates across target rings", "Triage immediate deployment roadblocks or policy errors", "Analyze post-migration validation signals"], tech: "Intune Deployment Rings, Power BI Dashboards, Active Directory Sync", deliv: "Wave Velocity Reports, End-User Sign-off Logs, Migration Tracking Dashboard, Quality Gate Clearances", out: "Optimized Performance & Better Experience", scope: `Mass Wave Scope: ${migrationScopeSize.toLocaleString()} Devices` },
-                            { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Remove active group policies (GPOs) from the legacy environment", "Wipe client footprint or unenroll from legacy local control systems", "Decommission obsolete local hosting or staging servers", "Clean up stale Active Directory computer objects", "Dispose or refresh physical corporate hardware safely"], tech: "Active Directory Administrative Center, Wipe Actions, Asset Lifecycle Automation", deliv: "Legacy Environment Offboarding Report, Stale Object Deletion Log, Hardware Disposition Ledger", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear` }
-                        ];
-                    } else if (osType === 'mobile') {
-                        lifecycleData = [
-                            { nr: "01", title: "Plan & Prepare", obj: "Assess environment, define strategy and build a robust mobility roadmap.", acts: ["Assess devices, users, apps and OS versions", "Define enrollment strategy (Company/Personal/Shared)", "Identify compliance & security requirements", "Define policies, roles & success metrics"], tech: "Microsoft Intune, Apple Business Manager (ABM), Android Enterprise", deliv: "Mobility Strategy Document, Enrollment & Security Plan, Risk & Compliance Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Total Mobile Scope: ${devices.toLocaleString()} Units` },
-                            { nr: "02", title: "Enroll & Register", obj: "Securely onboard devices using zero-touch/zero-click enrollment.", acts: ["iOS: Apple Business Manager enrollment (ADE)", "Android: Zero Touch / Knox Mobile Enrollment", "User or Admin enrollment", "Assign users, profiles & apps", "Validate device ownership & user identity"], tech: "ABM / ADE, Zero Touch, OEM Partners (Knox, etc.)", deliv: "Enrolled Devices Log, Enrollment Reports, User Assignment Report, Device Ownership Verified", out: "Seamless & Secure Onboarding", scope: `Target Throughput: ${actualWeeklyThroughput}/Week` },
-                            { nr: "03", title: "Configure & Deploy", obj: "Configure devices, apps and policies to ensure secure productivity.", acts: ["Deploy configuration profiles (Wi-Fi, VPN, Email, APN)", "Install enterprise apps (VPP / Managed Play)", "Apply security & compliance policies", "Configure restrictions, features & settings", "Deploy certificates & trusted networks"], tech: "Configuration Profiles, Managed Apps, Certs & Policies", deliv: "Configuration Profile List, App Deployment Report, Policy Assignment Report, Certificate Deployment Log", out: "Consistent & Standardized Environment", scope: `Shared Mode: No User Affinity` },
-                            { nr: "04", title: "Secure & Comply", obj: "Enforce security, monitor compliance and protect data & devices.", acts: ["Enforce compliance policies (Jailbreak/Root, OS, Encryption)", "Enable device encryption & passcode", "Apply Conditional Access", "App protection policies (MAM)", "Monitor threats & vulnerabilities"], tech: "Conditional Access, Defender for Endpoint, App Protection Policy", deliv: "Compliance Reports, Security Baseline Report, Threat & Risk Reports, Policy Compliance Status", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: MAM Data Isolation` },
-                            { nr: "05", title: "Manage & Support", obj: "Support users, manage changes and maintain service quality.", acts: ["Remote support & troubleshooting", "Manage apps, content & updates", "Monitor device health & performance", "Manage incidents & service requests", "Communicate with users"], tech: "Remote Help, Device Health Monitoring, Service Desk Integration", deliv: "Support Tickets & Resolution Reports, Device Health Dashboard, User Communication Logs, SLA Reports", out: "High Availability & User Productivity", scope: `Pilot Scale: ${pilotSize.toLocaleString()} Endpoints` },
-                            { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Execute zero-touch profile switches for active deployment waves", "Send corporate re-enrollment notification structures to users", "Track migration velocity metrics via live dashboard indicators", "Resolve user identity or certificate mapping issues instantly", "Monitor profile push success across active device types"], tech: "Apple Business Manager tokens, Android Play Store Sync, Intune Device Groups", deliv: "Wave Conversion Logs, Device Enrollment Metrics, Operational Support Logs", out: "Optimized Performance & Better Experience", scope: `Scale Run: ${migrationScopeSize.toLocaleString()} Rollouts` },
-                            { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Unenroll and retire mobile assets from the old MDM environment (AirWatch / Workspace ONE / MobileIron)", "Revoke legacy enterprise certificates and specialized trust tokens", "Remove legacy application profiles and container structures cleanly", "Clear device tracking associations from the historical asset database", "Decommission old management sync servers or cloud connection channels"], tech: "Legacy UEM Console, MDM Command API, Token Revocation Engines", deliv: "Legacy Environment Offboarding Report, Enterprise Container Wipe Logs, Asset Retirement Sheet", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear` }
-                        ];
-                    } else { // Mac
-                        lifecycleData = [
-                            { nr: "01", title: "Plan & Prepare", obj: "Understand environment, business needs and build a roadmap for macOS device management.", acts: ["Discover macOS devices (Intune, Apple Business Manager, AD, etc.)", "Assess OS versions & hardware compatibility", "Identify business & security requirements", "Analyze compliance, risks & gaps", "Define scope, priorities & timeline"], tech: "Apple Business Manager, Microsoft Intune, Microsoft Entra ID", deliv: "Assessment Report, Readiness & Gap Analysis, Device Inventory Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Scope: ${devices.toLocaleString()} Mac Systems` },
-                            { nr: "02", title: "Enroll & Onboard", obj: "Securely onboard Mac devices and prepare them for management.", acts: ["Enroll Macs via Apple Business Manager (Automated Device Enrollment)", "Configure enrollment in Microsoft Intune", "Configure User or Device Enrollment", "Assign users, groups & roles", "Validate device ownership & supervision"], tech: "Apple Configurator, Automated Device Enrollment, Intune Enrollment", deliv: "Enrollment Strategy, ADE Enrollment Report, Device Ownership Verified, Enrollment Completion Report", out: "Seamless & Secure Onboarding", scope: `Weekly Batch: ${batchSize.toLocaleString()} Devices` },
-                            { nr: "03", title: "Configure & Deploy", obj: "Deploy configurations, apps and settings to deliver a secure, productive Mac experience.", acts: ["Deploy configuration profiles (Wi-Fi, VPN, Email, SSO, etc.)", "Deploy apps (App Store, VPP, Custom Apps)", "Configure scripts & remediation", "Setup FileVault encryption & Gatekeeper", "Configure device settings & preferences"], tech: "Configuration Profiles, Intune Apps, Scripts & Remediations", deliv: "Configuration Profile List, Application Deployment Report, Policy Assignment Report, Script Deployment Report", out: "Consistent & Standardized Environment", scope: `Target Apps: ${totalApps} Built` },
-                            { nr: "04", title: "Secure & Comply", obj: "Enforce security policies, ensure compliance and protect devices and data.", acts: ["Enforce compliance policies (FileVault, Firewall, OS Update, Password)", "Enable Endpoint Protection (Defender for Endpoint)", "Apply Conditional Access & App Protection", "Manage certificates, VPN, and Wi-Fi networks", "Monitor threats & vulnerabilities"], tech: "Microsoft Defender for Endpoint, FileVault Encryption, Conditional Access", deliv: "Compliance Baseline Report, Security Baseline Report, Threat & Vulnerability Report, Certificate & Network Report", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: Platform SSO Verification` },
-                            { nr: "05", title: "Manage & Support", obj: "Provide day-to-day management and support to ensure devices run smoothly.", acts: ["Remote help & troubleshooting", "Manage incidents & service requests", "Software updates & patch management", "Monitor device health & performance", "Communicate with users"], tech: "Remote Help, Device Health Dashboard, Service Desk Integration", deliv: "Support & Incident Reports, Device Health Dashboard, User Communication Logs, Knowledge Base Articles", out: "High Availability & User Productivity", scope: `Target Pilot: ${pilotSize.toLocaleString()} Macs` },
-                            { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Manage automated provisioning assignments across high-volume deployment waves", "Trigger enterprise enrollment flows dynamically for target user populations", "Track macOS enrollment completion health and setup times", "Address local agent initialization issues or configuration blocks", "Validate profile delivery success via centralized analytics reporting"], tech: "Automated Device Enrollment, Shell Scripting, Centralized Analytics Dashboards", deliv: "Wave Scale Analytics, Platform SSO Enrollment Metrics, Support Activity Ledger", out: "Optimized Performance & Better Experience", scope: `Production Target: ${migrationScopeSize.toLocaleString()} Macs` },
-                            { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Remove active device records from the legacy management environment (Jamf / MobileIron Pro)", "Clean up local legacy management agents and daemon binaries safely from assets", "Revoke historical enterprise security certificates and trust relationships", "Clear historical hardware associations from the legacy organization database", "Decommission old dedicated local staging servers or local connection lines"], tech: "Legacy Console Management, Terminal Command Lines, Certificate Authority Revocation", deliv: "Legacy Environment Offboarding Report, Agent Removal Audit Logs, Device Record Cleanliness Proof", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear` }
-                        ];
+                    // Re-render charts with new data
+                    if(document.getElementById('view-dashboard').classList.contains('active') || 
+                       document.getElementById('view-resources').classList.contains('active')) {
+                        renderCharts();
                     }
+                }
+                
+                // ==========================================
+                // DEVICE MANAGEMENT DEPLOYMENT PHASES (Still UI rendering)
+                // ==========================================
+                let lifecycleData = [];
+                if (osType === 'windows') {
+                    lifecycleData = [
+                        { nr: "01", title: "Plan & Prepare", obj: "Understand environment, business needs and build a roadmap for Windows device management.", acts: ["Discover devices (AD, Azure AD, SCCM, Excel, etc.)", "Assess OS versions & hardware readiness", "Identify business & security requirements", "Analyze compliance, risks & gaps", "Define scope, priorities & timeline"], tech: "Microsoft Intune, Microsoft Entra ID, Azure AD Connect, MS Graph API", deliv: "Assessment Report, Readiness & Gap Analysis, Device Inventory Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Scope: Full Assessment of ${devices.toLocaleString()} Endpoints` },
+                        { nr: "02", title: "Enroll & Onboard", obj: "Securely onboard Windows devices into management platform.", acts: ["Configure enrollment methods (Autopilot, Manual, Bulk)", "Prepare Autopilot (Hash upload & profiles)", "User driven or Self-deploying mode setup", "Assign users, groups & roles", "Validate device ownership & compliance"], tech: "Windows Autopilot, Enrollment Status Page, Intune Connector, Bulk Enrollment", deliv: "Enrollment Strategy, Autopilot Deployment Profiles, Enrollment Reports, User/Device Assignment Report", out: "Seamless & Secure Onboarding", scope: `Initial Strategy Implementation Plan` },
+                        { nr: "03", title: "Configure & Deploy", obj: "Deploy configurations, applications and policies to enable a productive and secure experience.", acts: ["Deploy configuration profiles (Device, User, Security)", "Deploy applications (Win32, Store, LOB)", "Configure scripts, remediations & proactive actions", "Setup Windows Update for Business", "Configure device settings & preferences"], tech: "Configuration Profiles, Win32 Apps, PowerShell Scripts, Windows Update for Business", deliv: "Configuration & Policy Catalog, Application Deployment Plan, Update & Patch Strategy, Deployment Reports", out: "Consistent & Standardized Environment", scope: `Target Application Packages: ${totalApps}` },
+                        { nr: "04", title: "Secure & Comply", obj: "Enforce security policies, ensure compliance and protect devices and data.", acts: ["Enforce security policies (BitLocker, Firewall, AV, etc.)", "Configure Conditional Access & device compliance", "Enable Defender for Endpoint & Security Baselines", "Manage certificates, VPN, Wi-Fi & remediation", "Monitor threats, vulnerabilities & remediation"], tech: "Defender for Endpoint, Compliance Policies, Conditional Access, BitLocker & Encryption", deliv: "Security Baseline Report, Compliance & Risk Reports, Policy & Profile Documentation, Threat & Vulnerability Report", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: Security Baselines Enforced` },
+                        { nr: "05", title: "Manage & Support", obj: "Provide end-user support, monitor device health and ensure smooth operations.", acts: ["Monitor device health & performance", "Remote help & troubleshooting", "Manage incidents & service requests", "Software updates & patch compliance", "Manage app protection & data policies", "Communicate with users"], tech: "Remote Help, Endpoint Analytics, Service Desk Integration, Proactive Remediations", deliv: "Support & Incident Reports, Device Health Dashboard, Patch Compliance Reports, User Communication Logs", out: "High Availability & User Productivity", scope: `Pilot Scale: Phase Monitoring` },
+                        { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Finalize wave distribution schedules and automation targets", "Trigger user communications templates and instructions", "Monitor deployment completion rates across target rings", "Triage immediate deployment roadblocks or policy errors", "Analyze post-migration validation signals"], tech: "Intune Deployment Rings, Power BI Dashboards, Active Directory Sync", deliv: "Wave Velocity Reports, End-User Sign-off Logs, Migration Tracking Dashboard, Quality Gate Clearances", out: "Optimized Performance & Better Experience", scope: `Mass Wave Scope: Production Rollouts` },
+                        { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Remove active group policies (GPOs) from the legacy environment", "Wipe client footprint or unenroll from legacy local control systems", "Decommission obsolete local hosting or staging servers", "Clean up stale Active Directory computer objects", "Dispose or refresh physical corporate hardware safely"], tech: "Active Directory Administrative Center, Wipe Actions, Asset Lifecycle Automation", deliv: "Legacy Environment Offboarding Report, Stale Object Deletion Log, Hardware Disposition Ledger", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear` }
+                    ];
+                } else if (osType === 'mobile') {
+                    lifecycleData = [
+                        { nr: "01", title: "Plan & Prepare", obj: "Assess environment, define strategy and build a robust mobility roadmap.", acts: ["Assess devices, users, apps and OS versions", "Define enrollment strategy (Company/Personal/Shared)", "Identify compliance & security requirements", "Define policies, roles & success metrics"], tech: "Microsoft Intune, Apple Business Manager (ABM), Android Enterprise", deliv: "Mobility Strategy Document, Enrollment & Security Plan, Risk & Compliance Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Total Mobile Scope: ${devices.toLocaleString()} Units` },
+                        { nr: "02", title: "Enroll & Register", obj: "Securely onboard devices using zero-touch/zero-click enrollment.", acts: ["iOS: Apple Business Manager enrollment (ADE)", "Android: Zero Touch / Knox Mobile Enrollment", "User or Admin enrollment", "Assign users, profiles & apps", "Validate device ownership & user identity"], tech: "ABM / ADE, Zero Touch, OEM Partners (Knox, etc.)", deliv: "Enrolled Devices Log, Enrollment Reports, User Assignment Report, Device Ownership Verified", out: "Seamless & Secure Onboarding", scope: `Target Throughput Scheduled` },
+                        { nr: "03", title: "Configure & Deploy", obj: "Configure devices, apps and policies to ensure secure productivity.", acts: ["Deploy configuration profiles (Wi-Fi, VPN, Email, APN)", "Install enterprise apps (VPP / Managed Play)", "Apply security & compliance policies", "Configure restrictions, features & settings", "Deploy certificates & trusted networks"], tech: "Configuration Profiles, Managed Apps, Certs & Policies", deliv: "Configuration Profile List, App Deployment Report, Policy Assignment Report, Certificate Deployment Log", out: "Consistent & Standardized Environment", scope: `Shared Mode: Configured` },
+                        { nr: "04", title: "Secure & Comply", obj: "Enforce security, monitor compliance and protect data & devices.", acts: ["Enforce compliance policies (Jailbreak/Root, OS, Encryption)", "Enable device encryption & passcode", "Apply Conditional Access", "App protection policies (MAM)", "Monitor threats & vulnerabilities"], tech: "Conditional Access, Defender for Endpoint, App Protection Policy", deliv: "Compliance Reports, Security Baseline Report, Threat & Risk Reports, Policy Compliance Status", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: MAM Data Isolation` },
+                        { nr: "05", title: "Manage & Support", obj: "Support users, manage changes and maintain service quality.", acts: ["Remote support & troubleshooting", "Manage apps, content & updates", "Monitor device health & performance", "Manage incidents & service requests", "Communicate with users"], tech: "Remote Help, Device Health Monitoring, Service Desk Integration", deliv: "Support Tickets & Resolution Reports, Device Health Dashboard, User Communication Logs, SLA Reports", out: "High Availability & User Productivity", scope: `Pilot Scale Phase Monitoring` },
+                        { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Execute zero-touch profile switches for active deployment waves", "Send corporate re-enrollment notification structures to users", "Track migration velocity metrics via live dashboard indicators", "Resolve user identity or certificate mapping issues instantly", "Monitor profile push success across active device types"], tech: "Apple Business Manager tokens, Android Play Store Sync, Intune Device Groups", deliv: "Wave Conversion Logs, Device Enrollment Metrics, Operational Support Logs", out: "Optimized Performance & Better Experience", scope: `Scale Run: Production Rollouts` },
+                        { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Unenroll and retire mobile assets from the old MDM environment (AirWatch / Workspace ONE / MobileIron)", "Revoke legacy enterprise certificates and specialized trust tokens", "Remove legacy application profiles and container structures cleanly", "Clear device tracking associations from the historical asset database", "Decommission old management sync servers or cloud connection channels"], tech: "Legacy UEM Console, MDM Command API, Token Revocation Engines", deliv: "Legacy Environment Offboarding Report, Enterprise Container Wipe Logs, Asset Retirement Sheet", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear` }
+                    ];
+                } else { 
+                    // Mac
+                    lifecycleData = [
+                        { nr: "01", title: "Plan & Prepare", obj: "Understand environment, business needs and build a roadmap for macOS device management.", acts: ["Discover macOS devices (Intune, Apple Business Manager, AD, etc.)", "Assess OS versions & hardware compatibility", "Identify business & security requirements", "Analyze compliance, risks & gaps", "Define scope, priorities & timeline"], tech: "Apple Business Manager, Microsoft Intune, Microsoft Entra ID", deliv: "Assessment Report, Readiness & Gap Analysis, Device Inventory Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Scope: ${devices.toLocaleString()} Mac Systems` },
+                        { nr: "02", title: "Enroll & Onboard", obj: "Securely onboard Mac devices and prepare them for management.", acts: ["Enroll Macs via Apple Business Manager (Automated Device Enrollment)", "Configure enrollment in Microsoft Intune", "Configure User or Device Enrollment", "Assign users, groups & roles", "Validate device ownership & supervision"], tech: "Apple Configurator, Automated Device Enrollment, Intune Enrollment", deliv: "Enrollment Strategy, ADE Enrollment Report, Device Ownership Verified, Enrollment Completion Report", out: "Seamless & Secure Onboarding", scope: `Weekly Batch Settings Applied` },
+                        { nr: "03", title: "Configure & Deploy", obj: "Deploy configurations, apps and settings to deliver a secure, productive Mac experience.", acts: ["Deploy configuration profiles (Wi-Fi, VPN, Email, SSO, etc.)", "Deploy apps (App Store, VPP, Custom Apps)", "Configure scripts & remediation", "Setup FileVault encryption & Gatekeeper", "Configure device settings & preferences"], tech: "Configuration Profiles, Intune Apps, Scripts & Remediations", deliv: "Configuration Profile List, Application Deployment Report, Policy Assignment Report, Script Deployment Report", out: "Consistent & Standardized Environment", scope: `Target Apps: ${totalApps} Built` },
+                        { nr: "04", title: "Secure & Comply", obj: "Enforce security policies, ensure compliance and protect devices and data.", acts: ["Enforce compliance policies (FileVault, Firewall, OS Update, Password)", "Enable Endpoint Protection (Defender for Endpoint)", "Apply Conditional Access & App Protection", "Manage certificates, VPN, and Wi-Fi networks", "Monitor threats & vulnerabilities"], tech: "Microsoft Defender for Endpoint, FileVault Encryption, Conditional Access", deliv: "Compliance Baseline Report, Security Baseline Report, Threat & Vulnerability Report, Certificate & Network Report", out: "Secure, Compliant & Risk Mitigated", scope: `Scope: Platform SSO Verification` },
+                        { nr: "05", title: "Manage & Support", obj: "Provide day-to-day management and support to ensure devices run smoothly.", acts: ["Remote help & troubleshooting", "Manage incidents & service requests", "Software updates & patch management", "Monitor device health & performance", "Communicate with users"], tech: "Remote Help, Device Health Dashboard, Service Desk Integration", deliv: "Support & Incident Reports, Device Health Dashboard, User Communication Logs, Knowledge Base Articles", out: "High Availability & User Productivity", scope: `Target Pilot Monitoring Phase` },
+                        { nr: "06", title: "Scale & Migrate", obj: "Execute structured migration waves to transfer production assets seamlessly to the optimized state.", acts: ["Manage automated provisioning assignments across high-volume deployment waves", "Trigger enterprise enrollment flows dynamically for target user populations", "Track macOS enrollment completion health and setup times", "Address local agent initialization issues or configuration blocks", "Validate profile delivery success via centralized analytics reporting"], tech: "Automated Device Enrollment, Shell Scripting, Centralized Analytics Dashboards", deliv: "Wave Scale Analytics, Platform SSO Enrollment Metrics, Support Activity Ledger", out: "Optimized Performance & Better Experience", scope: `Production Target Executed` },
+                        { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Remove active device records from the legacy management environment (Jamf / MobileIron Pro)", "Clean up local legacy management agents and daemon binaries safely from assets", "Revoke historical enterprise security certificates and trust relationships", "Clear historical hardware associations from the legacy organization database", "Decommission old dedicated local staging servers or local connection lines"], tech: "Legacy Console Management, Terminal Command Lines, Certificate Authority Revocation", deliv: "Legacy Environment Offboarding Report, Agent Removal Audit Logs, Device Record Cleanliness Proof", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear` }
+                    ];
+                }
 
-                    let lifecycHTML = "";
-                    lifecycleData.forEach((item, index) => {
-                        let actsList = "";
-                        item.acts.forEach(act => { actsList += `<li>• ${act}</li>`; });
+                let lifecycHTML = "";
+                lifecycleData.forEach((item, index) => {
+                    let actsList = "";
+                    item.acts.forEach(act => { actsList += `<li>• ${act}</li>`; });
 
-                        lifecycHTML += `
-                            <div class="lifecycle-card">
-                                <div class="lifecycle-card-header phase-bg-${index + 1}">
-                                    <span style="font-size: 20px; font-weight: 800;">${item.nr}</span>
-                                    <span>${item.title}</span>
+                    lifecycHTML += `
+                        <div class="lifecycle-card">
+                            <div class="lifecycle-card-header phase-bg-${index + 1}">
+                                <span style="font-size: 20px; font-weight: 800;">${item.nr}</span>
+                                <span>${item.title}</span>
+                            </div>
+                            <div class="lifecycle-card-body">
+                                <div>
+                                    <div class="lifecycle-section-title">Objective</div>
+                                    <p style="margin:0; line-height:1.4; color:var(--text-dark); font-weight:500;">${item.obj}</p>
+                                    <div class="lifecycle-scope-badge"><i class="fa-solid fa-calculator" style="margin-right:6px;"></i>${item.scope}</div>
                                 </div>
-                                <div class="lifecycle-card-body">
-                                    <div>
-                                        <div class="lifecycle-section-title">Objective</div>
-                                        <p style="margin:0; line-height:1.4; color:var(--text-dark); font-weight:500;">${item.obj}</p>
-                                        <div class="lifecycle-scope-badge"><i class="fa-solid fa-calculator" style="margin-right:6px;"></i>${item.scope}</div>
-                                    </div>
-                                    <div>
-                                        <div class="lifecycle-section-title">Key Activities</div>
-                                        <ul style="list-style:none; padding:0; margin:0; line-height:1.5; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
-                                            ${actsList}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <div class="lifecycle-section-title">Technologies Involved</div>
-                                        <p style="margin:0; font-style:italic; color:#0369a1;"><i class="fa-solid fa-microchip" style="margin-right:5px; font-size:10px;"></i>${item.tech}</p>
-                                    </div>
-                                    <div>
-                                        <div class="lifecycle-section-title">Key Deliverables</div>
-                                        <p style="margin:0; color:var(--text-dark);"><i class="fa-regular fa-file-lines" style="margin-right:5px; color:#059669;"></i>${item.deliv}</p>
-                                    </div>
-                                    <div style="margin-top:auto; padding-top:10px; border-top:1px dashed var(--border-color); font-weight:bold; color:#047857; display:flex; align-items:center; gap:5px;">
-                                        <i class="fa-regular fa-circle-check"></i> ${item.out}
-                                    </div>
+                                <div>
+                                    <div class="lifecycle-section-title">Key Activities</div>
+                                    <ul style="list-style:none; padding:0; margin:0; line-height:1.5; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
+                                        ${actsList}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <div class="lifecycle-section-title">Technologies Involved</div>
+                                    <p style="margin:0; font-style:italic; color:#0369a1;"><i class="fa-solid fa-microchip" style="margin-right:5px; font-size:10px;"></i>${item.tech}</p>
+                                </div>
+                                <div>
+                                    <div class="lifecycle-section-title">Key Deliverables</div>
+                                    <p style="margin:0; color:var(--text-dark);"><i class="fa-regular fa-file-lines" style="margin-right:5px; color:#059669;"></i>${item.deliv}</p>
+                                </div>
+                                <div style="margin-top:auto; padding-top:10px; border-top:1px dashed var(--border-color); font-weight:bold; color:#047857; display:flex; align-items:center; gap:5px;">
+                                    <i class="fa-regular fa-circle-check"></i> ${item.out}
                                 </div>
                             </div>
-                        `;
-                    });
-                    document.getElementById('lifecycle-cards-injector').innerHTML = lifecycHTML;
-
-                    // ==========================================
-                    // 5. GENERATE DETAILED WBS GANTT CHART (EXCEL STYLE)
-                    // ==========================================
-                    let rawTasks = [];
-                    let cCode = 1001;
-                    
-                    function addTask(phase, name, days) {
-                        rawTasks.push({ code: cCode++, phase: phase, name: name, days: days });
-                    }
-
-                    if (osType === 'windows') {
-                        addTask('Inception', 'Contract Execution - Client Sign-Off', 5);
-                        addTask('Inception', 'Project Staffing', 5);
-                        addTask('Inception', 'Staff Onboarding & Orientation', 5);
-                        addTask('Inception', 'Business Stakeholder Identification', 5);
-                        addTask('Inception', 'Kick Off Meeting - Initial Scope', 5);
-                        addTask('Inception', 'APB Project Plan Review', 5);
-                        addTask('Discover', 'Device inventory report', 15);
-                        addTask('Discover', 'Policies & Configuration Review', 15);
-                        addTask('Discover', 'Use Case Identification', 10);
-                        addTask('Discover', 'Required Apps Details and Information', 10);
-                        addTask('Discover', 'GPO & Legacy Policy Assessment', 10);
-                        addTask('Design', 'Capture Scope / Prerequisites', 8);
-                        addTask('Design', 'Define Policies and restriction', 8);
-                        addTask('Design', 'Create Required Group for migration', 7);
-                        addTask('Design', 'List of LOBs Apps Details', 7);
-                        addTask('Env Prep', 'Group Creation for UAT & Corp', 15);
-                        addTask('Env Prep', 'Azure AD Join Configuration', 15);
-                        addTask('Configuration', 'Intune Deployment & Restriction Policies', 8);
-                        addTask('Configuration', 'Autopilot Profile for UAT & CORP', 8);
-                        addTask('Configuration', 'Configure compliance restriction', 7);
-                        addTask('Configuration', 'Deploy LOBs apps for CORP Devices', 7);
-                        addTask('UAT / Pilot', 'Pilot Users Details & Selection', 5);
-                        addTask('UAT / Pilot', 'Added the user into the Test group', 5);
-                        addTask('UAT / Pilot', 'Test the Environment with Pilot users', 15);
-                        addTask('UAT / Pilot', 'Sign-off on the POC', 5);
-                        addTask('Migration', 'Comms sent to CORP users to enroll', 1);
-                        addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1); 
-                        addTask('Post Migration', 'Validate all migrated device policies', 10);
-                        addTask('Post Migration', 'Address Migration Related Issue', 10);
-                        addTask('Post Migration', 'Monitoring the environment', 10);
-                        addTask('Training', 'Support end users services', 15);
-                        addTask('Training', 'SOPs for the support', 15);
-                    } else if (osType === 'mobile') {
-                        addTask('Inception', 'Contract Execution - Client Sign-Off', 5);
-                        addTask('Inception', 'Project Staffing', 5);
-                        addTask('Inception', 'Business Stakeholder Identification', 10);
-                        addTask('Inception', 'Kick Off Meeting - Initial Scope', 10);
-                        addTask('Discover', 'Mobile Device inventory (ABM & AW) report', 10);
-                        addTask('Discover', 'Policies & Configuration Review', 10);
-                        addTask('Discover', 'Use Case Identification', 5);
-                        addTask('Discover', 'Licenses Information', 5);
-                        addTask('Design', 'Capture Scope / Prerequisites', 10);
-                        addTask('Design', 'Define Mobile Policies and restriction', 10);
-                        addTask('Design', 'List of Required Managed Apps', 10);
-                        addTask('Env Prep', 'Group Creation for UAT & Corp', 5);
-                        addTask('Env Prep', 'ABM / Android Enterprise Integration', 10);
-                        addTask('Configuration', 'Deployment & Restriction Policies', 4);
-                        addTask('Configuration', 'DEF Profile for UAT & CORP devices', 4);
-                        addTask('Configuration', 'Configure compliance restriction', 3);
-                        addTask('Configuration', 'Deploy Required Apps for Devices', 4);
-                        addTask('UAT / Pilot', 'Pilot Users Details', 5);
-                        addTask('UAT / Pilot', 'Test the Environment with Pilot users', 20);
-                        addTask('UAT / Pilot', 'Sign-off on the POC', 5);
-                        addTask('Migration', 'Comms sent to CORP users to re-enroll', 1);
-                        addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1);
-                        addTask('Post Migration', 'Validate all migrated devices', 5);
-                        addTask('Post Migration', 'Monitoring the environment', 10);
-                        addTask('Training', 'SOPs for the support', 15);
-                    } else {
-                        addTask('Inception', 'Contract Execution - Client Sign-Off', 10);
-                        addTask('Inception', 'Project Staffing', 10);
-                        addTask('Inception', 'Business Stakeholder Identification', 10);
-                        addTask('Discover', 'Mac Device inventory report', 10);
-                        addTask('Discover', 'Policies & Jamf Configuration Review', 10);
-                        addTask('Discover', 'Use Case Identification', 10);
-                        addTask('Design', 'Capture Scope / Prerequisites', 10);
-                        addTask('Design', 'Define Policies and restriction', 10);
-                        addTask('Design', 'Platform SSO Architecture Design', 10);
-                        addTask('Env Prep', 'Group Creation for UAT & Corp', 5);
-                        addTask('Env Prep', 'Apple Business Manager Integration', 10);
-                        addTask('Configuration', 'Deployment & Restriction Policies', 5);
-                        addTask('Configuration', 'FileVault & PPPC Profiles Configured', 5);
-                        addTask('Configuration', 'Deploy LOBs apps (PKG/DMG)', 5);
-                        addTask('UAT / Pilot', 'Pilot Users Details', 5);
-                        addTask('UAT / Pilot', 'Test the Environment with Pilot users', 20);
-                        addTask('UAT / Pilot', 'Sign-off on the POC', 5);
-                        addTask('Migration', 'Comms sent to CORP users to re-enroll', 1);
-                        addTask('Migration', `Phases Wise Migration (${devices} Devices)`, (migrationM * 30) - 1);
-                        addTask('Post Migration', 'Validate all migrated devices', 5);
-                        addTask('Post Migration', 'Monitoring the environment', 10);
-                        addTask('Training', 'SOPs for the support', 15);
-                    }
-
-                    let currentDate = startDateStr;
-                    rawTasks.forEach(t => {
-                        t.startDate = currentDate;
-                        t.endDate = addDaysToDate(currentDate, t.days);
-                        currentDate = t.endDate;
-                    });
-                    
-                    let projectStartMs = new Date(startDateStr).getTime();
-                    let projectEndMs = new Date(rawTasks[rawTasks.length - 1].endDate).getTime();
-                    let totalProjectDays = Math.ceil((projectEndMs - projectStartMs) / (1000 * 60 * 60 * 24));
-                    let totalWeeks = Math.max(1, Math.ceil(totalProjectDays / 7));
-
-                    let detailedGanttHTML = `<table class="excel-grid">`;
-                    detailedGanttHTML += `<thead><tr>
-                        <th class="col-code">Milestone Code</th>
-                        <th class="col-phase">Phase</th>
-                        <th class="col-task">Task / Milestone</th>
-                        <th>Duration (Days)</th>
-                        <th>Status</th>
-                        <th>% Completed</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>`;
-                    for(let w=1; w<=totalWeeks; w++) { detailedGanttHTML += `<th>W${w}</th>`; }
-                    detailedGanttHTML += `</tr></thead><tbody>`;
-
-                    finalExcelData = [
-                        ['Milestone Code', 'Phase', 'Task / Milestone', 'Duration (Days)', 'Status', '% Completed', 'Start Date', 'End Date']
-                    ];
-                    for(let w=1; w<=totalWeeks; w++) { finalExcelData[0].push('W'+w); }
-
-                    let lastPhase = "";
-                    rawTasks.forEach(t => {
-                        let isNewPhase = (t.phase !== lastPhase);
-                        lastPhase = t.phase;
-                        
-                        let excelRow = [t.code, t.phase, t.name, t.days, 'Not Started', '0%', t.startDate, t.endDate];
-
-                        detailedGanttHTML += `<tr>
-                            <td class="col-code">${t.code}</td>
-                            <td class="col-phase" style="font-weight: ${isNewPhase ? 'bold':'normal'}; color: ${isNewPhase ? '#0f172a':'transparent'};">${t.phase}</td>
-                            <td class="col-task">${t.name}</td>
-                            <td>${t.days}</td>
-                            <td style="color:#64748b;">Not Started</td>
-                            <td style="color:#64748b;">0%</td>
-                            <td style="color:#64748b;">${t.startDate}</td>
-                            <td style="color:#64748b;">${t.endDate}</td>`;
-
-                        let taskStartMs = new Date(t.startDate).getTime();
-                        let taskEndMs = new Date(t.endDate).getTime();
-
-                        for(let w=1; w<=totalWeeks; w++) {
-                            let weekStartMs = projectStartMs + ((w - 1) * 7 * 24 * 60 * 60 * 1000);
-                            let weekEndMs = projectStartMs + (w * 7 * 24 * 60 * 60 * 1000) - 1;
-                            
-                            if (taskStartMs <= weekEndMs && taskEndMs >= weekStartMs) {
-                                detailedGanttHTML += `<td><div class="gantt-fill"></div></td>`;
-                                excelRow.push('Active');
-                            } else {
-                                detailedGanttHTML += `<td></td>`;
-                                excelRow.push('');
-                            }
-                        }
-                        detailedGanttHTML += `</tr>`;
-                        finalExcelData.push(excelRow);
-                    });
-                    
-                    detailedGanttHTML += `</tbody></table>`;
-                    document.getElementById('detailed-gantt-container').innerHTML = detailedGanttHTML;
-                }
+                        </div>
+                    `;
+                });
+                document.getElementById('lifecycle-cards-injector').innerHTML = lifecycHTML;
             }
         }
 
