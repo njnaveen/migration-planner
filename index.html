@@ -630,11 +630,9 @@
             
             // 1. Process New Payment & Set 5-Day Timer
             if (urlParams.has('razorpay_payment_id') || urlParams.has('payment_id')) {
-                // Calculate exactly 5 days from this current second
                 let expirationTime = new Date().getTime() + (5 * 24 * 60 * 60 * 1000); 
                 localStorage.setItem('planner_unlocked_until', expirationTime.toString());
                 
-                // Erase the old permanent token if they had one
                 localStorage.removeItem('planner_unlocked'); 
                 
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -645,18 +643,15 @@
             let unlockUntil = localStorage.getItem('planner_unlocked_until');
             isUnlocked = false;
 
-            // Auto-migrate current permanent access to the new 5-day system
             if (localStorage.getItem('planner_unlocked') === 'true') {
                 let expirationTime = new Date().getTime() + (5 * 24 * 60 * 60 * 1000);
                 localStorage.setItem('planner_unlocked_until', expirationTime.toString());
                 localStorage.removeItem('planner_unlocked');
                 isUnlocked = true;
             } else if (unlockUntil) {
-                // Check if current time is LESS than the expiration time
                 if (new Date().getTime() < parseInt(unlockUntil)) {
-                    isUnlocked = true; // Still active!
+                    isUnlocked = true; 
                 } else {
-                    // Time is up! Lock them out.
                     localStorage.removeItem('planner_unlocked_until');
                     isUnlocked = false; 
                 }
@@ -779,7 +774,7 @@
 
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
                 
-                // 1. Send data to your new secure backend
+                // 1. Send data to your secure backend
                 const response = await fetch('/api/calculate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -797,7 +792,7 @@
                 // 2. Receive the safe calculated data
                 const data = await response.json();
 
-                // 3. Inject data into the UI (No math happens here!)
+                // 3. Inject data into the UI
                 document.getElementById('date-pilot').value = data.pilotDate;
                 document.getElementById('date-prod').value = data.prodDate;
                 
@@ -832,6 +827,47 @@
                     donutGlobalData = data.donutGlobalData;
                     finalExcelData = data.finalExcelData;
                     
+                    // Render Visual Gantt Chart Table
+                    if (finalExcelData && finalExcelData.length > 0) {
+                        let headers = finalExcelData[0];
+                        let detailedGanttHTML = '<table class="excel-grid"><thead><tr>';
+                        
+                        detailedGanttHTML += `<th class="col-code">${headers[0]}</th>`;
+                        detailedGanttHTML += `<th class="col-phase">${headers[1]}</th>`;
+                        detailedGanttHTML += `<th class="col-task">${headers[2]}</th>`;
+                        for(let i=3; i<8; i++) detailedGanttHTML += `<th>${headers[i]}</th>`;
+                        for(let i=8; i<headers.length; i++) detailedGanttHTML += `<th>${headers[i]}</th>`;
+                        detailedGanttHTML += '</tr></thead><tbody>';
+
+                        let lastPhase = "";
+                        for (let r = 1; r < finalExcelData.length; r++) {
+                            let row = finalExcelData[r];
+                            let isNewPhase = (row[1] !== lastPhase);
+                            lastPhase = row[1];
+                            
+                            detailedGanttHTML += `<tr>`;
+                            detailedGanttHTML += `<td class="col-code">${row[0]}</td>`;
+                            detailedGanttHTML += `<td class="col-phase" style="font-weight: ${isNewPhase ? 'bold':'normal'}; color: ${isNewPhase ? '#0f172a':'transparent'};">${row[1]}</td>`;
+                            detailedGanttHTML += `<td class="col-task">${row[2]}</td>`;
+                            detailedGanttHTML += `<td>${row[3]}</td>`;
+                            detailedGanttHTML += `<td style="color:#64748b;">${row[4]}</td>`;
+                            detailedGanttHTML += `<td style="color:#64748b;">${row[5]}</td>`;
+                            detailedGanttHTML += `<td style="color:#64748b;">${row[6]}</td>`;
+                            detailedGanttHTML += `<td style="color:#64748b;">${row[7]}</td>`;
+                            
+                            for(let i = 8; i < row.length; i++) {
+                                if (row[i] === 'Active') {
+                                    detailedGanttHTML += `<td><div class="gantt-fill"></div></td>`;
+                                } else {
+                                    detailedGanttHTML += `<td></td>`;
+                                }
+                            }
+                            detailedGanttHTML += `</tr>`;
+                        }
+                        detailedGanttHTML += '</tbody></table>';
+                        document.getElementById('detailed-gantt-container').innerHTML = detailedGanttHTML;
+                    }
+                    
                     // Re-render charts with new data
                     if(document.getElementById('view-dashboard').classList.contains('active') || 
                        document.getElementById('view-resources').classList.contains('active')) {
@@ -840,7 +876,7 @@
                 }
                 
                 // ==========================================
-                // DEVICE MANAGEMENT DEPLOYMENT PHASES (Still UI rendering)
+                // DEVICE MANAGEMENT DEPLOYMENT PHASES
                 // ==========================================
                 let lifecycleData = [];
                 if (osType === 'windows') {
@@ -864,7 +900,6 @@
                         { nr: "07", title: "Legacy Retire & Decommission", obj: "Securely offboard devices from the old environment and clean up legacy infrastructure data safely.", acts: ["Unenroll and retire mobile assets from the old MDM environment (AirWatch / Workspace ONE / MobileIron)", "Revoke legacy enterprise certificates and specialized trust tokens", "Remove legacy application profiles and container structures cleanly", "Clear device tracking associations from the historical asset database", "Decommission old management sync servers or cloud connection channels"], tech: "Legacy UEM Console, MDM Command API, Token Revocation Engines", deliv: "Legacy Environment Offboarding Report, Enterprise Container Wipe Logs, Asset Retirement Sheet", out: "Secure Offboarding & Legacy Cleaned", scope: `Scope: Legacy Environment Clear` }
                     ];
                 } else { 
-                    // Mac
                     lifecycleData = [
                         { nr: "01", title: "Plan & Prepare", obj: "Understand environment, business needs and build a roadmap for macOS device management.", acts: ["Discover macOS devices (Intune, Apple Business Manager, AD, etc.)", "Assess OS versions & hardware compatibility", "Identify business & security requirements", "Analyze compliance, risks & gaps", "Define scope, priorities & timeline"], tech: "Apple Business Manager, Microsoft Intune, Microsoft Entra ID", deliv: "Assessment Report, Readiness & Gap Analysis, Device Inventory Report, Project Plan & Timeline", out: "Clear Visibility & Strategic Alignment", scope: `Scope: ${devices.toLocaleString()} Mac Systems` },
                         { nr: "02", title: "Enroll & Onboard", obj: "Securely onboard Mac devices and prepare them for management.", acts: ["Enroll Macs via Apple Business Manager (Automated Device Enrollment)", "Configure enrollment in Microsoft Intune", "Configure User or Device Enrollment", "Assign users, groups & roles", "Validate device ownership & supervision"], tech: "Apple Configurator, Automated Device Enrollment, Intune Enrollment", deliv: "Enrollment Strategy, ADE Enrollment Report, Device Ownership Verified, Enrollment Completion Report", out: "Seamless & Secure Onboarding", scope: `Weekly Batch Settings Applied` },
