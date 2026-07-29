@@ -184,11 +184,17 @@
 
         /* PRINT STYLING OPTIMIZATION */
         @media print {
+            @page { size: landscape; }
             .sidebar, .header, .header-actions, button, .stepper { display: none !important; }
             body { background: white !important; }
             .main-content { width: 100% !important; margin: 0 !important; padding: 0 !important; }
             .content-scroll { padding: 0 !important; }
             .dash-panel, .card { border: none !important; box-shadow: none !important; break-inside: avoid; }
+            
+            /* Fix for 7-Stage Blueprint Wrapping */
+            .lifecycle-scroll { overflow: visible !important; }
+            .lifecycle-container { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; min-width: 100% !important; }
+            .lifecycle-card { break-inside: avoid; margin-bottom: 15px; }
         }
 
         /* MEDIA QUERIES */
