@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- ADDED: External Configuration Script -->
+    <!-- External Configuration Script -->
     <script src="./config.js"></script>
 
     <style>
@@ -219,7 +219,7 @@
             <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
         </div>
         
-        <!-- MODIFIED: Sidebar menu items injected from config.js -->
+        <!-- Sidebar menu items injected from config.js -->
         <div class="nav-menu" id="sidebar-nav-container"></div>
         
         <div class="snapshot-area">
@@ -614,7 +614,7 @@
         let finalExcelData = [];
 
         document.addEventListener('DOMContentLoaded', function() {
-            // ADDED: Renders the sidebar navigation using config.js
+            // Renders the sidebar navigation using config.js
             if (typeof renderSidebar === 'function') {
                 renderSidebar('planner');
             }
@@ -668,10 +668,18 @@
             handlePlatformChange();
             calculatePlan();
 
-            if(hasIncomingData && !isUnlocked) {
+            // --- FIXED VIEW ROUTING ON LOAD ---
+            let targetView = urlParams.get('view');
+
+            if (targetView && document.getElementById('view-' + targetView)) {
+                // If the URL specifies a view (e.g. ?view=timeline), open it!
+                switchMainView(targetView);
+            } else if (hasIncomingData && !isUnlocked) {
                 switchMainView('planner');
             } else if (hasIncomingData && isUnlocked) {
                 switchMainView('dashboard');
+            } else {
+                switchMainView('planner');
             }
         });
 
