@@ -50,14 +50,6 @@
         .btn-pdf { background: #0f172a; }
         .btn-pdf:hover { background: #1e293b; }
 
-        /* PRINT STYLING HIDE */
-        @media print {
-            .sidebar, .header, .report-actions, button { display: none !important; }
-            body { background: white; }
-            .main-content { width: 100%; }
-            .report-card { border: none; box-shadow: none; break-inside: avoid; }
-        }
-
         @media (max-width: 850px) {
             .sidebar { position: fixed; left: -260px; transition: 0.3s; z-index: 100; }
         }
@@ -89,14 +81,14 @@
 
             <div class="reports-grid">
                 
-                <!-- Report 1: Executive Dashboard PDF / Print Summary -->
+                <!-- Report 1: Executive Dashboard Print -->
                 <div class="report-card">
                     <i class="fa-solid fa-chart-pie report-icon"></i>
                     <div class="report-title">Executive Dashboard Summary</div>
                     <div class="report-desc">A consolidated high-level overview containing peak FTE staffing, total person-months, go-live timeline milestones, and risk summaries suitable for leadership reviews.</div>
                     <div class="report-actions">
-                        <button onclick="window.location.href='index.html?view=dashboard'" class="btn-download btn-pdf">
-                            <i class="fa-solid fa-eye"></i> View & Print Dashboard
+                        <button onclick="window.location.href='index.html?view=dashboard&print=true'" class="btn-download btn-pdf">
+                            <i class="fa-solid fa-print"></i> Print Executive Dashboard
                         </button>
                     </div>
                 </div>
@@ -119,20 +111,20 @@
                     <div class="report-title">Readiness & Baselines Audit Report</div>
                     <div class="report-desc">Exports your current enterprise configuration audit scores, domain readiness percentages, and high-risk technical blockers.</div>
                     <div class="report-actions">
-                        <button onclick="window.location.href='configuration.html'" class="btn-download" style="background: #8b5cf6;">
-                            <i class="fa-solid fa-gears"></i> Open Configuration Audit
+                        <button onclick="window.location.href='configuration.html?print=true'" class="btn-download" style="background: #8b5cf6;">
+                            <i class="fa-solid fa-print"></i> Print Configuration Audit
                         </button>
                     </div>
                 </div>
 
-                <!-- Report 4: Deployment Phases & Architecture Blueprint -->
+                <!-- Report 4: Deployment Phases Blueprint -->
                 <div class="report-card" style="--primary: #f59e0b;">
                     <i class="fa-solid fa-diagram-project report-icon" style="color: #f59e0b;"></i>
                     <div class="report-title">7-Stage Operational Blueprint</div>
                     <div class="report-desc">Detailed documentation outlining the 7 lifecycle phases from Plan & Prepare through Legacy Retirement, including technologies and deliverables.</div>
                     <div class="report-actions">
-                        <button onclick="window.location.href='index.html?view=lifecycle'" class="btn-download" style="background: #f59e0b; color: #0f172a;">
-                            <i class="fa-solid fa-diagram-project"></i> View Deployment Phases
+                        <button onclick="window.location.href='index.html?view=lifecycle&print=true'" class="btn-download" style="background: #f59e0b; color: #0f172a;">
+                            <i class="fa-solid fa-print"></i> Print Deployment Phases
                         </button>
                     </div>
                 </div>
