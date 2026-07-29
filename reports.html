@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Export Hub - Intune Migration Planner</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="./config.js?v=3"></script>
+
+    <style>
+        :root {
+            --sidebar-bg: #0f172a; --sidebar-hover: #1e293b;
+            --primary: #0284c7; --primary-hover: #0369a1;
+            --bg-light: #f1f5f9; --text-dark: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; min-height: 100vh; color: var(--text-dark); }
+        
+        /* SIDEBAR */
+        .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+        .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121; }
+        .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
+        .nav-menu { flex: 1; padding: 15px 0; overflow-y: auto; }
+        .nav-item { padding: 10px 20px; display: flex; align-items: center; gap: 10px; color: #cbd5e1; text-decoration: none; transition: all 0.2s; cursor: pointer; font-size: 13px; }
+        .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); color: white; border-left: 4px solid var(--primary); }
+
+        /* MAIN AREA */
+        .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-light); width: 100%; }
+        .header { padding: 15px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 18px; }
+        .header-btn { padding: 8px 15px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; font-weight: 500; text-decoration: none; color: var(--text-dark); display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+        .header-btn:hover { background: #f8fafc; }
+        .content-scroll { padding: 25px; }
+
+        /* REPORTS GRID */
+        .reports-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+        .report-card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; overflow: hidden; }
+        .report-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); }
+        .report-icon { font-size: 28px; color: var(--primary); margin-bottom: 15px; }
+        .report-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; color: var(--text-dark); }
+        .report-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; flex: 1; }
+        
+        .report-actions { display: flex; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 15px; }
+        .btn-download { flex: 1; background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; transition: 0.2s; text-decoration: none; }
+        .btn-download:hover { background: var(--primary-hover); }
+        .btn-pdf { background: #0f172a; }
+        .btn-pdf:hover { background: #1e293b; }
+
+        @media (max-width: 850px) {
+            .sidebar { position: fixed; left: -260px; transition: 0.3s; z-index: 100; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SHARED SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo-area">
+            <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
+        </div>
+        <div class="nav-menu" id="sidebar-nav-container"></div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="main-content">
+        <div class="header">
+            <h2>Migration Reports & Executive Exports</h2>
+            <a href="index.html?view=planner" class="header-btn">
+                <i class="fa-solid fa-arrow-left"></i> Back to Planner
+            </a>
+        </div>
+
+        <div class="content-scroll">
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 25px;">
+                Generate and download professional artifacts, work breakdown structures, and executive summaries for stakeholder presentations and project audits.
+            </p>
+
+            <div class="reports-grid">
+                
+                <!-- Report 1: Executive Dashboard PDF / Print Summary -->
+                <div class="report-card">
+                    <i class="fa-solid fa-chart-pie report-icon"></i>
+                    <div class="report-title">Executive Dashboard Summary</div>
+                    <div class="report-desc">A consolidated high-level overview containing peak FTE staffing, total person-months, go-live timeline milestones, and risk summaries suitable for leadership reviews.</div>
+                    <div class="report-actions">
+                        <button onclick="window.print()" class="btn-download btn-pdf">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF / Print
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report 2: Detailed Gantt Plan Excel Export -->
+                <div class="report-card" style="--primary: #10b981;">
+                    <i class="fa-solid fa-file-excel report-icon" style="color: #10b981;"></i>
+                    <div class="report-title">Detailed Project WBS & Gantt Plan</div>
+                    <div class="report-desc">Complete work breakdown structure formatted for Microsoft Excel, including weekly task allocations, phase codes, and visual milestone timelines.</div>
+                    <div class="report-actions">
+                        <button onclick="exportGanttExcel()" class="btn-download" style="background: #10b981;">
+                            <i class="fa-solid fa-file-excel"></i> Download Excel (.xlsx)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report 3: Enterprise Readiness Assessment Report -->
+                <div class="report-card" style="--primary: #8b5cf6;">
+                    <i class="fa-solid fa-clipboard-check report-icon" style="color: #8b5cf6;"></i>
+                    <div class="report-title">Readiness & Baselines Audit Report</div>
+                    <div class="report-desc">Exports your current enterprise configuration audit scores, domain readiness percentages, and high-risk technical blockers.</div>
+                    <div class="report-actions">
+                        <button onclick="window.location.href='configuration.html'" class="btn-download" style="background: #8b5cf6;">
+                            <i class="fa-solid fa-gears"></i> View & Print Audit
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report 4: Deployment Phases & Architecture Blueprint -->
+                <div class="report-card" style="--primary: #f59e0b;">
+                    <i class="fa-solid fa-diagram-project report-icon" style="color: #f59e0b;"></i>
+                    <div class="report-title">7-Stage Operational Blueprint</div>
+                    <div class="report-desc">Detailed documentation outlining the 7 lifecycle phases from Plan & Prepare through Legacy Retirement, including technologies and deliverables.</div>
+                    <div class="report-actions">
+                        <button onclick="window.print()" class="btn-download" style="background: #f59e0b; color: #0f172a;">
+                            <i class="fa-solid fa-file-pdf"></i> Export Blueprint PDF
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check paywall lock
+            let unlockUntil = localStorage.getItem('planner_unlocked_until');
+            let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true') || 
+                             (unlockUntil && new Date().getTime() < parseInt(unlockUntil));
+
+            if (!isUnlocked) {
+                alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
+                window.location.replace("index.html?view=planner");
+                return;
+            }
+
+            if (typeof renderSidebar === 'function') {
+                renderSidebar('reports');
+            }
+        });
+
+        // Bridge to trigger the Gantt Excel export if generated, or alert user
+        function exportGanttExcel() {
+            // If the user calculated a plan on index.html, we can pull finalExcelData from localStorage or trigger export
+            alert("To export the live Gantt Plan Excel sheet, please run a calculation on the Planner Setup tab or use the download button directly from the Project Gantt Plan view.");
+            window.location.href = "index.html?view=gantt";
+        }
+    </script>
+</body>
+</html>
