@@ -1,6 +1,6 @@
-// ==========================================
-// CENTRAL APP CONFIGURATION & NAVIGATION
-// ==========================================
+// =========================================================
+// CENTRAL APP CONFIGURATION & ENTERPRISE READINESS ENGINE
+// =========================================================
 
 const AppConfig = {
     // 1. LEFT-HAND SIDEBAR MENU ITEMS
@@ -15,26 +15,111 @@ const AppConfig = {
         { id: 'config',    label: 'Configuration & Baselines', icon: 'fa-solid fa-gears',                url: "configuration.html" }
     ],
 
-    // 2. DEFAULT PLATFORM BASELINES (Shared across pages)
-    baselines: {
-        windows: [
-            "Autopilot Provisioning",
-            "Co-management",
-            "Hybrid Azure AD Join",
-            "Windows Defender AV",
-            "BitLocker Encryption"
-        ],
-        mobile: [
-            "Apple Business Manager (ABM)",
-            "ADE / VPP Configured",
-            "Android Enterprise",
-            "Shared Devices (No User Affinity)"
-        ],
-        mac: [
-            "FileVault Encryption",
-            "PPPC & System Extensions",
-            "Platform SSO"
-        ]
+    // 2. ENTERPRISE READINESS ASSESSMENT CATEGORIES
+    // Status Options: 'ready' (100%), 'in_progress' (65%), 'planned' (40%), 'missing' (0%)
+    assessmentCategories: [
+        {
+            id: 'identity',
+            title: 'Identity & Access (Zero Trust)',
+            icon: 'fa-solid fa-id-badge',
+            items: [
+                { name: 'Microsoft Entra ID Integration', status: 'ready',       risk: 'Low Risk' },
+                { name: 'Conditional Access Policies',    status: 'in_progress', risk: 'High Risk' },
+                { name: 'Multi-Factor Authentication',    status: 'ready',       risk: 'Low Risk' },
+                { name: 'SSO Configuration',              status: 'ready',       risk: 'Low Risk' },
+                { name: 'Identity Protection & PIM',      status: 'planned',     risk: 'Medium Risk' }
+            ]
+        },
+        {
+            id: 'cloud',
+            title: 'Cloud Tenant Readiness',
+            icon: 'fa-solid fa-cloud',
+            items: [
+                { name: 'Microsoft Intune Tenant Ready',  status: 'ready',       risk: 'Low Risk' },
+                { name: 'Microsoft Graph API Permissions',status: 'ready',       risk: 'Low Risk' },
+                { name: 'Licensing Assigned & Verified',  status: 'ready',       risk: 'Low Risk' },
+                { name: 'Intune Connectors & Intune Certificate PKI', status: 'in_progress', risk: 'Medium Risk' }
+            ]
+        },
+        {
+            id: 'windows',
+            title: 'Windows Platform Baselines',
+            icon: 'fa-brands fa-windows',
+            items: [
+                { name: 'Windows Autopilot Deployment',   status: 'ready',       risk: 'Low Risk' },
+                { name: 'Co-management (SCCM + Intune)',  status: 'ready',       risk: 'Low Risk' },
+                { name: 'Enrollment Status Page (ESP)',   status: 'ready',       risk: 'Low Risk' },
+                { name: 'Defender for Endpoint & LAPS',   status: 'ready',       risk: 'Low Risk' },
+                { name: 'BitLocker & Credential Guard',   status: 'in_progress', risk: 'Medium Risk' },
+                { name: 'Windows Update for Business',    status: 'ready',       risk: 'Low Risk' }
+            ]
+        },
+        {
+            id: 'apple',
+            title: 'Apple Platform Baselines (macOS & iOS)',
+            icon: 'fa-brands fa-apple',
+            items: [
+                { name: 'Apple Business Manager (ABM)',   status: 'ready',       risk: 'Low Risk' },
+                { name: 'Automated Device Enrollment (ADE)', status: 'ready',    risk: 'Low Risk' },
+                { name: 'Apps & Books (VPP) Sync',        status: 'in_progress', risk: 'Medium Risk' },
+                { name: 'macOS Platform SSO & FileVault', status: 'ready',       risk: 'Low Risk' },
+                { name: 'PPPC & System Extensions',       status: 'ready',       risk: 'Low Risk' }
+            ]
+        },
+        {
+            id: 'mobile',
+            title: 'Android Enterprise & Mobility',
+            icon: 'fa-solid fa-mobile-screen',
+            items: [
+                { name: 'Android Enterprise Fully Managed', status: 'ready',     risk: 'Low Risk' },
+                { name: 'Corporate-Owned Work Profile (COPE)', status: 'ready',  risk: 'Low Risk' },
+                { name: 'OEMConfig & Hardware Profiles',  status: 'missing',     risk: 'High Risk' },
+                { name: 'Zero-Touch Enrollment',          status: 'ready',       risk: 'Low Risk' }
+            ]
+        },
+        {
+            id: 'apps',
+            title: 'Application Readiness & Packaging',
+            icon: 'fa-solid fa-box-open',
+            items: [
+                { name: 'Win32 Application Packaging',    status: 'in_progress', risk: 'High Risk' },
+                { name: 'LOB Applications Packaged',      status: 'planned',     risk: 'Medium Risk' },
+                { name: 'App Dependencies & Detection Rules', status: 'in_progress', risk: 'Medium Risk' },
+                { name: 'Application UAT Testing Complete', status: 'planned',   risk: 'High Risk' }
+            ]
+        },
+        {
+            id: 'reporting',
+            title: 'Reporting, Network & Monitoring',
+            icon: 'fa-solid fa-chart-line',
+            items: [
+                { name: 'Endpoint Analytics Configured',  status: 'ready',       risk: 'Low Risk' },
+                { name: 'Device Compliance Dashboard',    status: 'ready',       risk: 'Low Risk' },
+                { name: 'Wi-Fi, VPN & PKI Certificates',  status: 'ready',       risk: 'Low Risk' },
+                { name: 'Log Analytics Workspace / Power BI', status: 'planned', risk: 'Low Risk' }
+            ]
+        }
+    ],
+
+    // Helper: Calculates Category Score & Total Readiness Percentage
+    calculateScores: function() {
+        let totalScore = 0;
+        let totalCount = 0;
+        const weights = { 'ready': 100, 'in_progress': 65, 'planned': 40, 'missing': 0 };
+
+        const categoryScores = this.assessmentCategories.map(cat => {
+            let catSum = 0;
+            cat.items.forEach(item => {
+                catSum += weights[item.status] || 0;
+                totalScore += weights[item.status] || 0;
+                totalCount++;
+            });
+            const catScore = Math.round(catSum / cat.items.length);
+            return { id: cat.id, title: cat.title, score: catScore };
+        });
+
+        const overall = totalCount > 0 ? Math.round(totalScore / totalCount) : 0;
+        return { overall, categories: categoryScores };
     }
 };
 
