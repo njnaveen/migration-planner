@@ -15,7 +15,18 @@ const AppConfig = {
         { id: 'config',    label: 'Configuration & Baselines', icon: 'fa-solid fa-gears',                url: "configuration.html" }
     ],
 
-    // 2. ENTERPRISE READINESS ASSESSMENT CATEGORIES
+    // 2. PAGE TITLE MAPPINGS FOR HEADER
+    pageTitles: {
+        'planner':   'Planner Setup',
+        'dashboard': 'Executive Dashboard',
+        'gantt':     'Project Gantt Chart Plan',
+        'timeline':  'High-Level Timeline & Waves',
+        'resources': 'Resource Matrix & Analytics',
+        'risks':     'Risks, Assumptions & Recommendations',
+        'lifecycle': 'Device Deployment Phases'
+    },
+
+    // 3. ENTERPRISE READINESS ASSESSMENT CATEGORIES
     // Status Options: 'ready' (100%), 'in_progress' (65%), 'planned' (40%), 'missing' (0%)
     assessmentCategories: [
         {
@@ -101,7 +112,7 @@ const AppConfig = {
         }
     ],
 
-    // Helper: Calculates Category Score & Total Readiness Percentage
+    // 4. SCORING ENGINE: Calculates Category Score & Total Readiness Percentage
     calculateScores: function() {
         let totalScore = 0;
         let totalCount = 0;
@@ -120,18 +131,52 @@ const AppConfig = {
 
         const overall = totalCount > 0 ? Math.round(totalScore / totalCount) : 0;
         return { overall, categories: categoryScores };
+    },
+
+    // 5. DEFAULT PLATFORM BASELINES (Shared fallback across pages)
+    baselines: {
+        windows: [
+            "Autopilot Provisioning",
+            "Co-management",
+            "Hybrid Azure AD Join",
+            "Windows Defender AV",
+            "BitLocker Encryption"
+        ],
+        mobile: [
+            "Apple Business Manager (ABM)",
+            "ADE / VPP Configured",
+            "Android Enterprise",
+            "Shared Devices (No User Affinity)"
+        ],
+        mac: [
+            "FileVault Encryption",
+            "PPPC & System Extensions",
+            "Platform SSO"
+        ]
     }
 };
 
-// Global helper to render the sidebar dynamically on ANY page
+// =========================================================
+// SMART PAGE-AWARE SIDEBAR RENDERER
+// =========================================================
 function renderSidebar(activeId) {
     const navContainer = document.getElementById('sidebar-nav-container');
     if (!navContainer) return;
 
+    // Check if we are currently on configuration.html (or any separate HTML page)
+    const isSeparatePage = !document.getElementById('view-planner');
+
     navContainer.innerHTML = AppConfig.sidebarNavigation.map(item => {
+        // 1. If the menu item has an explicit URL (like configuration.html), use a normal link
         if (item.url) {
             return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" href="${item.url}"><i class="${item.icon}"></i> ${item.label}</a>`;
-        } else {
+        } 
+        // 2. If we are on configuration.html, clicking a tab must link back to index.html?view=...
+        else if (isSeparatePage) {
+            return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" href="index.html?view=${item.id}"><i class="${item.icon}"></i> ${item.label}</a>`;
+        } 
+        // 3. If we are already on index.html, use the instant onclick JavaScript switcher
+        else {
             return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" onclick="${item.action}"><i class="${item.icon}"></i> ${item.label}</a>`;
         }
     }).join('');
