@@ -50,6 +50,14 @@
         .btn-pdf { background: #0f172a; }
         .btn-pdf:hover { background: #1e293b; }
 
+        /* PRINT STYLING HIDE */
+        @media print {
+            .sidebar, .header, .report-actions, button { display: none !important; }
+            body { background: white; }
+            .main-content { width: 100%; }
+            .report-card { border: none; box-shadow: none; break-inside: avoid; }
+        }
+
         @media (max-width: 850px) {
             .sidebar { position: fixed; left: -260px; transition: 0.3s; z-index: 100; }
         }
@@ -87,8 +95,8 @@
                     <div class="report-title">Executive Dashboard Summary</div>
                     <div class="report-desc">A consolidated high-level overview containing peak FTE staffing, total person-months, go-live timeline milestones, and risk summaries suitable for leadership reviews.</div>
                     <div class="report-actions">
-                        <button onclick="window.print()" class="btn-download btn-pdf">
-                            <i class="fa-solid fa-file-pdf"></i> Export PDF / Print
+                        <button onclick="window.location.href='index.html?view=dashboard'" class="btn-download btn-pdf">
+                            <i class="fa-solid fa-eye"></i> View & Print Dashboard
                         </button>
                     </div>
                 </div>
@@ -99,8 +107,8 @@
                     <div class="report-title">Detailed Project WBS & Gantt Plan</div>
                     <div class="report-desc">Complete work breakdown structure formatted for Microsoft Excel, including weekly task allocations, phase codes, and visual milestone timelines.</div>
                     <div class="report-actions">
-                        <button onclick="exportGanttExcel()" class="btn-download" style="background: #10b981;">
-                            <i class="fa-solid fa-file-excel"></i> Download Excel (.xlsx)
+                        <button onclick="window.location.href='index.html?view=gantt'" class="btn-download" style="background: #10b981;">
+                            <i class="fa-solid fa-file-excel"></i> Open Gantt & Export Excel
                         </button>
                     </div>
                 </div>
@@ -112,7 +120,7 @@
                     <div class="report-desc">Exports your current enterprise configuration audit scores, domain readiness percentages, and high-risk technical blockers.</div>
                     <div class="report-actions">
                         <button onclick="window.location.href='configuration.html'" class="btn-download" style="background: #8b5cf6;">
-                            <i class="fa-solid fa-gears"></i> View & Print Audit
+                            <i class="fa-solid fa-gears"></i> Open Configuration Audit
                         </button>
                     </div>
                 </div>
@@ -123,8 +131,8 @@
                     <div class="report-title">7-Stage Operational Blueprint</div>
                     <div class="report-desc">Detailed documentation outlining the 7 lifecycle phases from Plan & Prepare through Legacy Retirement, including technologies and deliverables.</div>
                     <div class="report-actions">
-                        <button onclick="window.print()" class="btn-download" style="background: #f59e0b; color: #0f172a;">
-                            <i class="fa-solid fa-file-pdf"></i> Export Blueprint PDF
+                        <button onclick="window.location.href='index.html?view=lifecycle'" class="btn-download" style="background: #f59e0b; color: #0f172a;">
+                            <i class="fa-solid fa-diagram-project"></i> View Deployment Phases
                         </button>
                     </div>
                 </div>
@@ -135,7 +143,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Check paywall lock
             let unlockUntil = localStorage.getItem('planner_unlocked_until');
             let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true') || 
                              (unlockUntil && new Date().getTime() < parseInt(unlockUntil));
@@ -150,13 +157,6 @@
                 renderSidebar('reports');
             }
         });
-
-        // Bridge to trigger the Gantt Excel export if generated, or alert user
-        function exportGanttExcel() {
-            // If the user calculated a plan on index.html, we can pull finalExcelData from localStorage or trigger export
-            alert("To export the live Gantt Plan Excel sheet, please run a calculation on the Planner Setup tab or use the download button directly from the Project Gantt Plan view.");
-            window.location.href = "index.html?view=gantt";
-        }
     </script>
 </body>
 </html>
