@@ -1,15 +1,10 @@
 // =========================================================
-// SECURE CONFIGURATION NAVIGATION GUARD
+// SECURE NAVIGATION GUARDS
 // =========================================================
 function openConfiguration() {
     let unlockUntil = localStorage.getItem('planner_unlocked_until');
-    let isUnlocked = false;
-
-    if (localStorage.getItem('planner_unlocked') === 'true') {
-        isUnlocked = true;
-    } else if (unlockUntil && new Date().getTime() < parseInt(unlockUntil)) {
-        isUnlocked = true;
-    }
+    let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true') || 
+                     (unlockUntil && new Date().getTime() < parseInt(unlockUntil));
 
     if (!isUnlocked) {
         alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
@@ -18,6 +13,21 @@ function openConfiguration() {
         }
     } else {
         window.location.href = "configuration.html";
+    }
+}
+
+function openReports() {
+    let unlockUntil = localStorage.getItem('planner_unlocked_until');
+    let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true') || 
+                     (unlockUntil && new Date().getTime() < parseInt(unlockUntil));
+
+    if (!isUnlocked) {
+        alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
+        if (!document.getElementById('view-planner')) {
+            window.location.href = "index.html?view=planner";
+        }
+    } else {
+        window.location.href = "reports.html";
     }
 }
 
@@ -34,7 +44,8 @@ const AppConfig = {
         { id: 'resources', label: 'Resource Matrix',           icon: 'fa-solid fa-users',                action: "switchMainView('resources')" },
         { id: 'risks',     label: 'Risks & Notes',             icon: 'fa-solid fa-triangle-exclamation', action: "switchMainView('risks')" },
         { id: 'lifecycle', label: 'Deployment Phases',         icon: 'fa-solid fa-diagram-project',      action: "switchMainView('lifecycle')" },
-        { id: 'config',    label: 'Configuration & Baselines', icon: 'fa-solid fa-gears',                action: "openConfiguration()" }
+        { id: 'config',    label: 'Configuration & Baselines', icon: 'fa-solid fa-gears',                action: "openConfiguration()" },
+        { id: 'reports',   label: 'Reports & Export',          icon: 'fa-solid fa-file-pdf',             action: "openReports()" }
     ],
 
     // 2. PAGE TITLE MAPPINGS FOR HEADER
@@ -188,10 +199,13 @@ function renderSidebar(activeId) {
 
     navContainer.innerHTML = AppConfig.sidebarNavigation.map(item => {
         if (isSeparatePage) {
-            if (item.id === 'config') {
-                return `<a class="nav-item active" id="nav-${item.id}" href="configuration.html"><i class="${item.icon}"></i> ${item.label}</a>`;
+            if (item.id === activeId) {
+                return `<a class="nav-item active" id="nav-${item.id}" href="${item.id === 'config' ? 'configuration.html' : (item.id === 'reports' ? 'reports.html' : '#')}"><i class="${item.icon}"></i> ${item.label}</a>`;
             } else {
-                return `<a class="nav-item" id="nav-${item.id}" href="index.html?view=${item.id}"><i class="${item.icon}"></i> ${item.label}</a>`;
+                let targetUrl = 'index.html?view=' + item.id;
+                if (item.id === 'config') targetUrl = 'configuration.html';
+                if (item.id === 'reports') targetUrl = 'reports.html';
+                return `<a class="nav-item" id="nav-${item.id}" href="${targetUrl}"><i class="${item.icon}"></i> ${item.label}</a>`;
             }
         } else {
             return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" onclick="${item.action}"><i class="${item.icon}"></i> ${item.label}</a>`;
