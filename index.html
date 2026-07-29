@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- External Configuration Script -->
-    <script src="./config.js"></script>
+    <script src="./config.js?v=3"></script>
 
     <style>
         :root {
@@ -181,6 +181,15 @@
         .step.active { color: var(--primary); border-bottom: 3px solid var(--primary); margin-bottom: -13px; padding-bottom: 10px;}
         .tab-content { display: none; animation: fadeIn 0.2s; }
         .tab-content.active { display: block; }
+
+        /* PRINT STYLING OPTIMIZATION */
+        @media print {
+            .sidebar, .header, .header-actions, button, .stepper { display: none !important; }
+            body { background: white !important; }
+            .main-content { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .content-scroll { padding: 0 !important; }
+            .dash-panel, .card { border: none !important; box-shadow: none !important; break-inside: avoid; }
+        }
 
         /* MEDIA QUERIES */
         @media (max-width: 950px) {
@@ -670,9 +679,9 @@
 
             // --- FIXED VIEW ROUTING ON LOAD ---
             let targetView = urlParams.get('view');
+            let shouldPrint = urlParams.get('print') === 'true';
 
             if (targetView && document.getElementById('view-' + targetView)) {
-                // If the URL specifies a view (e.g. ?view=timeline), open it!
                 switchMainView(targetView);
             } else if (hasIncomingData && !isUnlocked) {
                 switchMainView('planner');
@@ -680,6 +689,13 @@
                 switchMainView('dashboard');
             } else {
                 switchMainView('planner');
+            }
+
+            // --- AUTOMATIC PRINT TRIGGER ---
+            if (shouldPrint && isUnlocked) {
+                setTimeout(() => {
+                    window.print();
+                }, 1200);
             }
         });
 
@@ -704,7 +720,6 @@
 
             document.getElementById('view-' + viewId).classList.add('active');
             
-            // Re-render sidebar active state via helper if available
             if (typeof renderSidebar === 'function') {
                 renderSidebar(viewId);
             } else {
@@ -793,7 +808,6 @@
 
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
                 
-                // 1. Send data to your secure backend
                 const response = await fetch('/api/calculate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -808,10 +822,8 @@
                     })
                 });
 
-                // 2. Receive the safe calculated data
                 const data = await response.json();
 
-                // 3. Inject data into the UI
                 document.getElementById('date-pilot').value = data.pilotDate;
                 document.getElementById('date-prod').value = data.prodDate;
                 
@@ -841,12 +853,10 @@
                     document.getElementById('dash-gantt-container').innerHTML = data.ganttHTML;
                     document.getElementById('time-gantt-container').innerHTML = data.ganttHTML;
                     
-                    // Set global variables for charts & excel
                     chartGlobalData = data.chartGlobalData;
                     donutGlobalData = data.donutGlobalData;
                     finalExcelData = data.finalExcelData;
                     
-                    // Render Visual Gantt Chart Table
                     if (finalExcelData && finalExcelData.length > 0) {
                         let headers = finalExcelData[0];
                         let detailedGanttHTML = '<table class="excel-grid"><thead><tr>';
@@ -887,7 +897,6 @@
                         document.getElementById('detailed-gantt-container').innerHTML = detailedGanttHTML;
                     }
                     
-                    // Re-render charts with new data
                     if(document.getElementById('view-dashboard').classList.contains('active') || 
                        document.getElementById('view-resources').classList.contains('active')) {
                         renderCharts();
