@@ -184,20 +184,16 @@ function renderSidebar(activeId) {
     const navContainer = document.getElementById('sidebar-nav-container');
     if (!navContainer) return;
 
-    // Check if we are currently on configuration.html (or any separate HTML page)
     const isSeparatePage = !document.getElementById('view-planner');
 
     navContainer.innerHTML = AppConfig.sidebarNavigation.map(item => {
-        // 1. If we are on configuration.html, clicking a tab links back to index.html?view=...
         if (isSeparatePage) {
             if (item.id === 'config') {
                 return `<a class="nav-item active" id="nav-${item.id}" href="configuration.html"><i class="${item.icon}"></i> ${item.label}</a>`;
             } else {
                 return `<a class="nav-item" id="nav-${item.id}" href="index.html?view=${item.id}"><i class="${item.icon}"></i> ${item.label}</a>`;
             }
-        } 
-        // 2. If we are already on index.html, use the instant onclick switcher or openConfiguration
-        else {
+        } else {
             return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" onclick="${item.action}"><i class="${item.icon}"></i> ${item.label}</a>`;
         }
     }).join('');
