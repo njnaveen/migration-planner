@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuration & Baselines - Intune Migration Planner</title>
+    <title>Enterprise Readiness & Baselines - Intune Migration Planner</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="./config.js"></script>
@@ -19,23 +19,63 @@
         * { box-sizing: border-box; }
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; min-height: 100vh; color: var(--text-dark); }
         
+        /* SIDEBAR */
         .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
         .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121; }
         .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
-        
         .nav-menu { flex: 1; padding: 15px 0; overflow-y: auto; }
         .nav-item { padding: 10px 20px; display: flex; align-items: center; gap: 10px; color: #cbd5e1; text-decoration: none; transition: all 0.2s; cursor: pointer; font-size: 13px; }
         .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); color: white; border-left: 4px solid var(--primary); }
 
+        /* MAIN AREA */
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-light); width: 100%; }
         .header { padding: 15px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .header h2 { margin: 0; font-size: 18px; }
         .content-scroll { padding: 25px; }
 
-        .card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .card-header { font-size: 15px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .check-list { list-style: none; padding: 0; margin: 0; font-size: 13px; line-height: 1.8; }
-        .check-list li { display: flex; align-items: center; gap: 8px; }
+        /* AI READINESS SCORE CARD */
+        .ai-score-card { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; border-radius: 10px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .ai-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px; }
+        .ai-title { font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 10px; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; }
+        .overall-score-box { text-align: right; }
+        .overall-score-box .label { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
+        .overall-score-box .val { font-size: 32px; font-weight: 800; color: #4ade80; }
+
+        /* PROGRESS BARS GRID */
+        .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .score-item { background: rgba(255,255,255,0.05); padding: 12px 15px; border-radius: 6px; border: 1px solid #334155; }
+        .score-item-top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+        .progress-bar-bg { background: #334155; height: 8px; border-radius: 4px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+        /* AI RECOMMENDATION BOX */
+        .ai-rec-box { background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 12px 15px; border-radius: 4px; font-size: 13px; line-height: 1.5; color: #e0f2fe; }
+        .ai-rec-box strong { color: #38bdf8; }
+
+        /* ENTERPRISE ASSESSMENT TABLES */
+        .card { background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .card-header { font-size: 15px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+        
+        .assess-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .assess-table th { background: #f8fafc; font-weight: 600; text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+        .assess-table td { padding: 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        
+        /* BADGES */
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .badge-ready       { background: #dcfce7; color: #166534; } /* Green */
+        .badge-progress    { background: #ffedd5; color: #9a3412; } /* Orange */
+        .badge-planned     { background: #fef9c3; color: #854d0e; } /* Yellow */
+        .badge-missing     { background: #fee2e2; color: #991b1b; } /* Red */
+        
+        .risk-low    { color: #16a34a; font-weight: 600; }
+        .risk-medium { color: #d97706; font-weight: 600; }
+        .risk-high   { color: #dc2626; font-weight: 700; }
+
+        @media (max-width: 850px) {
+            .sidebar { position: fixed; left: -260px; transition: 0.3s; z-index: 100; }
+            .ai-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .overall-score-box { text-align: left; }
+        }
     </style>
 </head>
 <body>
@@ -51,43 +91,127 @@
     <!-- MAIN CONTENT AREA -->
     <div class="main-content">
         <div class="header">
-            <h2>Configuration & Platform Baselines</h2>
+            <h2>Enterprise Migration Readiness Assessment</h2>
+            <button onclick="location.reload()" style="padding:8px 15px; border:1px solid #cbd5e1; background:white; border-radius:4px; cursor:pointer; font-weight:500;">
+                <i class="fa-solid fa-rotate-right"></i> Refresh Assessment
+            </button>
         </div>
 
         <div class="content-scroll">
-            <div class="card">
-                <div class="card-header"><i class="fa-solid fa-laptop-code"></i> Windows Platform Baselines</div>
-                <ul class="check-list" id="list-windows"></ul>
+            
+            <!-- 1. AI EXECUTIVE READINESS SCORE CARD -->
+            <div class="ai-score-card">
+                <div class="ai-header">
+                    <div class="ai-title"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Executive Readiness Summary</div>
+                    <div class="overall-score-box">
+                        <div class="label">Overall Migration Score</div>
+                        <div class="val" id="ai-overall-score">--%</div>
+                    </div>
+                </div>
+
+                <div class="score-grid" id="ai-score-grid">
+                    <!-- Progress bars dynamically injected -->
+                </div>
+
+                <div class="ai-rec-box" id="ai-recommendation-box">
+                    <!-- AI Executive Recommendation injected here -->
+                </div>
             </div>
 
-            <div class="card">
-                <div class="card-header"><i class="fa-solid fa-mobile-screen"></i> Mobile (iOS/Android) Baselines</div>
-                <ul class="check-list" id="list-mobile"></ul>
+            <!-- 2. ENTERPRISE ASSESSMENT CATEGORIES & TABLES -->
+            <div id="assessment-tables-container">
+                <!-- All category tables dynamically injected -->
             </div>
 
-            <div class="card">
-                <div class="card-header"><i class="fa-solid fa-desktop"></i> macOS Baselines</div>
-                <ul class="check-list" id="list-mac"></ul>
-            </div>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. Render the sidebar with 'config' highlighted
+            // 1. Render sidebar highlighting 'config'
             renderSidebar('config');
 
-            // 2. Dynamically populate baselines from config.js
-            function renderList(elementId, items) {
-                const el = document.getElementById(elementId);
-                if (el && items) {
-                    el.innerHTML = items.map(item => `<li><input type="checkbox" checked> ${item}</li>`).join('');
-                }
-            }
+            if (typeof AppConfig === 'undefined' || !AppConfig.assessmentCategories) return;
 
-            renderList('list-windows', AppConfig.baselines.windows);
-            renderList('list-mobile', AppConfig.baselines.mobile);
-            renderList('list-mac', AppConfig.baselines.mac);
+            // 2. Calculate category and overall scores
+            const scores = AppConfig.calculateScores();
+            
+            // Render Overall Score
+            document.getElementById('ai-overall-score').innerText = scores.overall + '%';
+
+            // 3. Render Progress Bars in the Executive Summary Card
+            const scoreGridEl = document.getElementById('ai-score-grid');
+            scoreGridEl.innerHTML = scores.categories.map(cat => {
+                let col = cat.score >= 85 ? '#4ade80' : (cat.score >= 65 ? '#facc15' : '#f87171');
+                return `
+                    <div class="score-item">
+                        <div class="score-item-top">
+                            <span>${cat.title}</span>
+                            <span style="color:${col};">${cat.score}%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${cat.score}%; background: ${col};"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 4. Generate AI Advisory Recommendation Note
+            const lowestCat = [...scores.categories].sort((a,b) => a.score - b.score)[0];
+            const aiRecBox = document.getElementById('ai-recommendation-box');
+            aiRecBox.innerHTML = `
+                <strong><i class="fa-solid fa-lightbulb" style="margin-right:5px;"></i> Executive Advisory Recommendation:</strong> 
+                Your overall readiness is strong at <strong>${scores.overall}%</strong>. However, attention is recommended for <strong>${lowestCat.title}</strong> (${lowestCat.score}% ready). Complete remaining Win32 application packaging and resolve pending Conditional Access policies prior to initiating mass production Wave 1.
+            `;
+
+            // 5. Render Intelligent Assessment Tables
+            const badgeMap = {
+                'ready':       { label: '🟢 Configured',   cls: 'badge-ready' },
+                'in_progress': { label: '🟠 In Progress',  cls: 'badge-progress' },
+                'planned':     { label: '🟡 Planned',      cls: 'badge-planned' },
+                'missing':     { label: '🔴 Not Configured', cls: 'badge-missing' }
+            };
+
+            const riskClassMap = {
+                'Low Risk':    'risk-low',
+                'Medium Risk': 'risk-medium',
+                'High Risk':   'risk-high'
+            };
+
+            const tablesContainer = document.getElementById('assessment-tables-container');
+            tablesContainer.innerHTML = AppConfig.assessmentCategories.map(cat => {
+                const rowsHTML = cat.items.map(item => {
+                    const badge = badgeMap[item.status] || { label: item.status, cls: 'badge-planned' };
+                    const riskCls = riskClassMap[item.risk] || '';
+                    return `
+                        <tr>
+                            <td style="font-weight: 500;">${item.name}</td>
+                            <td><span class="badge ${badge.cls}">${badge.label}</span></td>
+                            <td class="${riskCls}">${item.risk}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="${cat.icon}" style="color: var(--primary);"></i> ${cat.title}
+                        </div>
+                        <table class="assess-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50%;">Configuration / Readiness Area</th>
+                                    <th style="width: 30%;">Assessment Status</th>
+                                    <th style="width: 20%;">Deployment Impact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }).join('');
         });
     </script>
 </body>
