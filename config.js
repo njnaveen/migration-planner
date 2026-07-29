@@ -1,7 +1,29 @@
 // =========================================================
+// SECURE CONFIGURATION NAVIGATION GUARD
+// =========================================================
+function openConfiguration() {
+    let unlockUntil = localStorage.getItem('planner_unlocked_until');
+    let isUnlocked = false;
+
+    if (localStorage.getItem('planner_unlocked') === 'true') {
+        isUnlocked = true;
+    } else if (unlockUntil && new Date().getTime() < parseInt(unlockUntil)) {
+        isUnlocked = true;
+    }
+
+    if (!isUnlocked) {
+        alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
+        if (!document.getElementById('view-planner')) {
+            window.location.href = "index.html?view=planner";
+        }
+    } else {
+        window.location.href = "configuration.html";
+    }
+}
+
+// =========================================================
 // CENTRAL APP CONFIGURATION & ENTERPRISE READINESS ENGINE
 // =========================================================
-
 const AppConfig = {
     // 1. LEFT-HAND SIDEBAR MENU ITEMS
     sidebarNavigation: [
@@ -12,7 +34,6 @@ const AppConfig = {
         { id: 'resources', label: 'Resource Matrix',           icon: 'fa-solid fa-users',                action: "switchMainView('resources')" },
         { id: 'risks',     label: 'Risks & Notes',             icon: 'fa-solid fa-triangle-exclamation', action: "switchMainView('risks')" },
         { id: 'lifecycle', label: 'Deployment Phases',         icon: 'fa-solid fa-diagram-project',      action: "switchMainView('lifecycle')" },
-        // UPDATED: Uses openConfiguration() guard to block unpaid access
         { id: 'config',    label: 'Configuration & Baselines', icon: 'fa-solid fa-gears',                action: "openConfiguration()" }
     ],
 
@@ -28,7 +49,6 @@ const AppConfig = {
     },
 
     // 3. ENTERPRISE READINESS ASSESSMENT CATEGORIES
-    // Status Options: 'ready' (100%), 'in_progress' (65%), 'planned' (40%), 'missing' (0%)
     assessmentCategories: [
         {
             id: 'identity',
@@ -113,7 +133,7 @@ const AppConfig = {
         }
     ],
 
-    // 4. SCORING ENGINE: Calculates Category Score & Total Readiness Percentage
+    // 4. SCORING ENGINE
     calculateScores: function() {
         let totalScore = 0;
         let totalCount = 0;
@@ -134,7 +154,7 @@ const AppConfig = {
         return { overall, categories: categoryScores };
     },
 
-    // 5. DEFAULT PLATFORM BASELINES (Shared fallback across pages)
+    // 5. DEFAULT PLATFORM BASELINES
     baselines: {
         windows: [
             "Autopilot Provisioning",
@@ -168,40 +188,17 @@ function renderSidebar(activeId) {
     const isSeparatePage = !document.getElementById('view-planner');
 
     navContainer.innerHTML = AppConfig.sidebarNavigation.map(item => {
-        // 1. If the menu item has an explicit URL, use a normal link
-        if (item.url) {
-            return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" href="${item.url}"><i class="${item.icon}"></i> ${item.label}</a>`;
+        // 1. If we are on configuration.html, clicking a tab links back to index.html?view=...
+        if (isSeparatePage) {
+            if (item.id === 'config') {
+                return `<a class="nav-item active" id="nav-${item.id}" href="configuration.html"><i class="${item.icon}"></i> ${item.label}</a>`;
+            } else {
+                return `<a class="nav-item" id="nav-${item.id}" href="index.html?view=${item.id}"><i class="${item.icon}"></i> ${item.label}</a>`;
+            }
         } 
-        // 2. If we are on configuration.html, clicking a tab must link back to index.html?view=...
-        else if (isSeparatePage) {
-            return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" href="index.html?view=${item.id}"><i class="${item.icon}"></i> ${item.label}</a>`;
-        } 
-        // 3. If we are already on index.html, use the instant onclick JavaScript switcher
+        // 2. If we are already on index.html, use the instant onclick switcher or openConfiguration
         else {
             return `<a class="nav-item ${item.id === activeId ? 'active' : ''}" id="nav-${item.id}" onclick="${item.action}"><i class="${item.icon}"></i> ${item.label}</a>`;
         }
     }).join('');
-}
-
-// =========================================================
-// SECURE CONFIGURATION NAVIGATION GUARD
-// =========================================================
-function openConfiguration() {
-    let unlockUntil = localStorage.getItem('planner_unlocked_until');
-    let isUnlocked = false;
-
-    if (localStorage.getItem('planner_unlocked') === 'true') {
-        isUnlocked = true;
-    } else if (unlockUntil && new Date().getTime() < parseInt(unlockUntil)) {
-        isUnlocked = true;
-    }
-
-    if (!isUnlocked) {
-        alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
-        if (!document.getElementById('view-planner')) {
-            window.location.href = "index.html?view=planner";
-        }
-    } else {
-        window.location.href = "configuration.html";
-    }
 }
