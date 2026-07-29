@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration & Baselines - Intune Migration Planner</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="./config.js"></script>
+
+    <style>
+        :root {
+            --sidebar-bg: #0f172a; --sidebar-hover: #1e293b;
+            --primary: #0284c7; --primary-hover: #0369a1;
+            --bg-light: #f1f5f9; --text-dark: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); display: flex; min-height: 100vh; color: var(--text-dark); }
+        
+        .sidebar { width: 250px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+        .logo-area { padding: 15px 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; background: #0b1121; }
+        .logo-area img { max-width: 100%; max-height: 45px; object-fit: contain; }
+        
+        .nav-menu { flex: 1; padding: 15px 0; overflow-y: auto; }
+        .nav-item { padding: 10px 20px; display: flex; align-items: center; gap: 10px; color: #cbd5e1; text-decoration: none; transition: all 0.2s; cursor: pointer; font-size: 13px; }
+        .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); color: white; border-left: 4px solid var(--primary); }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-light); width: 100%; }
+        .header { padding: 15px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 18px; }
+        .content-scroll { padding: 25px; }
+
+        .card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .card-header { font-size: 15px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .check-list { list-style: none; padding: 0; margin: 0; font-size: 13px; line-height: 1.8; }
+        .check-list li { display: flex; align-items: center; gap: 8px; }
+    </style>
+</head>
+<body>
+
+    <!-- SHARED SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo-area">
+            <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
+        </div>
+        <div class="nav-menu" id="sidebar-nav-container"></div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="main-content">
+        <div class="header">
+            <h2>Configuration & Platform Baselines</h2>
+        </div>
+
+        <div class="content-scroll">
+            <div class="card">
+                <div class="card-header"><i class="fa-solid fa-laptop-code"></i> Windows Platform Baselines</div>
+                <ul class="check-list" id="list-windows"></ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="fa-solid fa-mobile-screen"></i> Mobile (iOS/Android) Baselines</div>
+                <ul class="check-list" id="list-mobile"></ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="fa-solid fa-desktop"></i> macOS Baselines</div>
+                <ul class="check-list" id="list-mac"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Render the sidebar with 'config' highlighted
+            renderSidebar('config');
+
+            // 2. Dynamically populate baselines from config.js
+            function renderList(elementId, items) {
+                const el = document.getElementById(elementId);
+                if (el && items) {
+                    el.innerHTML = items.map(item => `<li><input type="checkbox" checked> ${item}</li>`).join('');
+                }
+            }
+
+            renderList('list-windows', AppConfig.baselines.windows);
+            renderList('list-mobile', AppConfig.baselines.mobile);
+            renderList('list-mac', AppConfig.baselines.mac);
+        });
+    </script>
+</body>
+</html>
