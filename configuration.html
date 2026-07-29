@@ -183,17 +183,30 @@
                 recBox.innerHTML = `<strong><i class="fa-solid fa-lightbulb" style="margin-right:5px;"></i> Executive Advisory Recommendation:</strong> Your overall readiness is at <strong>${scores.overall}%</strong>. Attention is recommended for <strong>${lowestCat.title}</strong> (${lowestCat.score}% ready). Ensure remaining high-risk items are configured prior to initiating mass production rollouts.`;
             }
 
-            // 4. Render Interactive Assessment Tables
-            const riskClassMap = {
-                'Low Risk':    'risk-low',
-                'Medium Risk': 'risk-medium',
-                'High Risk':   'risk-high'
-            };
-
+            // 4. Render Interactive Assessment Tables with DYNAMIC RISK IMPACT
             const tablesContainer = document.getElementById('assessment-tables-container');
             tablesContainer.innerHTML = AppConfig.assessmentCategories.map((cat, catIdx) => {
                 const rowsHTML = cat.items.map((item, itemIdx) => {
-                    const riskCls = riskClassMap[item.risk] || '';
+                    
+                    // --- DYNAMIC RISK IMPACT LOGIC ---
+                    let dynamicRiskText = "";
+                    let riskCls = "";
+
+                    if (item.status === 'ready') {
+                        dynamicRiskText = '<i class="fa-solid fa-shield-check" style="margin-right:4px;"></i> Risk Mitigated';
+                        riskCls = 'risk-low';
+                    } else if (item.status === 'in_progress') {
+                        dynamicRiskText = 'Moderate Impact';
+                        riskCls = 'risk-medium';
+                    } else if (item.status === 'planned') {
+                        dynamicRiskText = 'Pending Mitigation';
+                        riskCls = 'risk-medium';
+                    } else if (item.status === 'missing') {
+                        dynamicRiskText = '<i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i> High Risk / Blocker';
+                        riskCls = 'risk-high';
+                    }
+                    // ---------------------------------
+
                     return `
                         <tr>
                             <td style="font-weight: 500;">${item.name}</td>
@@ -206,7 +219,7 @@
                                     <option value="missing"     ${item.status === 'missing'     ? 'selected' : ''}>🔴 Not Configured</option>
                                 </select>
                             </td>
-                            <td class="${riskCls}">${item.risk}</td>
+                            <td class="${riskCls}">${dynamicRiskText}</td>
                         </tr>
                     `;
                 }).join('');
