@@ -128,27 +128,26 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            renderSidebar('config');
-            if (typeof AppConfig === 'undefined' || !AppConfig.assessmentCategories) return;
+            // --- NEW: INSTANT PAYWALL LOCK FOR CONFIGURATION PAGE ---
+            let unlockUntil = localStorage.getItem('planner_unlocked_until');
+            let isUnlocked = false;
 
-            // Load saved user audit choices from localStorage if available
-            const savedAudit = localStorage.getItem('user_readiness_audit');
-            if (savedAudit) {
-                try {
-                    const statusMap = JSON.parse(savedAudit);
-                    AppConfig.assessmentCategories.forEach(cat => {
-                        cat.items.forEach(item => {
-                            if (statusMap[item.name]) {
-                                item.status = statusMap[item.name];
-                            }
-                        });
-                    });
-                } catch (e) { console.error("Could not load saved audit state", e); }
+            if (localStorage.getItem('planner_unlocked') === 'true') {
+                isUnlocked = true;
+            } else if (unlockUntil && new Date().getTime() < parseInt(unlockUntil)) {
+                isUnlocked = true;
             }
 
-            renderAll();
-        });
+            if (!isUnlocked) {
+                alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
+                window.location.replace("index.html?view=planner");
+                return; // Stop rendering the page!
+            }
+            // --------------------------------------------------------
 
+            renderSidebar('config');
+            if (typeof AppConfig === 'undefined' || !AppConfig.assessmentCategories) return;
+            // ... rest of your existing configuration.html code ...
         // Main rendering function (Runs on load and whenever a dropdown changes)
         function renderAll() {
             const scores = AppConfig.calculateScores();
