@@ -6,7 +6,7 @@
     <title>Enterprise Readiness & Baselines - Intune Migration Planner</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="./config.js?v=2"></script>
+    <script src="./config.js?v=3"></script>
 
     <style>
         :root {
@@ -31,6 +31,8 @@
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-light); width: 100%; }
         .header { padding: 15px 25px; background: white; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .header h2 { margin: 0; font-size: 18px; }
+        .header-btn { padding: 8px 15px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; font-weight: 500; text-decoration: none; color: var(--text-dark); display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+        .header-btn:hover { background: #f8fafc; }
         .content-scroll { padding: 25px; }
 
         /* READINESS SCORE CARD */
@@ -92,9 +94,14 @@
     <div class="main-content">
         <div class="header">
             <h2>Enterprise Migration Readiness Assessment</h2>
-            <button onclick="resetAssessment()" style="padding:8px 15px; border:1px solid #cbd5e1; background:white; border-radius:4px; cursor:pointer; font-weight:500;">
-                <i class="fa-solid fa-rotate-right"></i> Reset to Default
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <a href="index.html?view=planner" class="header-btn">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Planner
+                </a>
+                <button onclick="resetAssessment()" class="header-btn">
+                    <i class="fa-solid fa-rotate-right"></i> Reset to Default
+                </button>
+            </div>
         </div>
 
         <div class="content-scroll">
@@ -128,28 +135,50 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- NEW: INSTANT PAYWALL LOCK FOR CONFIGURATION PAGE ---
+            // Check paywall lock before showing page
             let unlockUntil = localStorage.getItem('planner_unlocked_until');
-            let isUnlocked = false;
-
-            if (localStorage.getItem('planner_unlocked') === 'true') {
-                isUnlocked = true;
-            } else if (unlockUntil && new Date().getTime() < parseInt(unlockUntil)) {
-                isUnlocked = true;
-            }
+            let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true') || 
+                             (unlockUntil && new Date().getTime() < parseInt(unlockUntil));
 
             if (!isUnlocked) {
                 alert("Please complete payment in the 'Planner Setup' tab to unlock the detailed Dashboards and Reports.");
                 window.location.replace("index.html?view=planner");
-                return; // Stop rendering the page!
+                return;
             }
-            // --------------------------------------------------------
 
-            renderSidebar('config');
-            if (typeof AppConfig === 'undefined' || !AppConfig.assessmentCategories) return;
-            // ... rest of your existing configuration.html code ...
-        // Main rendering function (Runs on load and whenever a dropdown changes)
+            // Safe render of sidebar
+            if (typeof renderSidebar === 'function') {
+                renderSidebar('config');
+            } else {
+                console.error("renderSidebar function missing!");
+            }
+
+            if (typeof AppConfig === 'undefined' || !AppConfig.assessmentCategories) {
+                console.error("AppConfig not found from config.js");
+                return;
+            }
+
+            // Load saved user audit choices from localStorage if available
+            const savedAudit = localStorage.getItem('user_readiness_audit');
+            if (savedAudit) {
+                try {
+                    const statusMap = JSON.parse(savedAudit);
+                    AppConfig.assessmentCategories.forEach(cat => {
+                        cat.items.forEach(item => {
+                            if (statusMap[item.name]) {
+                                item.status = statusMap[item.name];
+                            }
+                        });
+                    });
+                } catch (e) { console.error("Could not load saved audit state", e); }
+            }
+
+            renderAll();
+        });
+
+        // Main rendering function
         function renderAll() {
+            if (typeof AppConfig === 'undefined') return;
             const scores = AppConfig.calculateScores();
             
             // 1. Update Overall Score
@@ -172,7 +201,7 @@
                 `;
             }).join('');
 
-            // 3. Generate Dynamic Executive Advisory Note based on lowest scoring category
+            // 3. Generate Dynamic Executive Advisory Note
             const lowestCat = [...scores.categories].sort((a,b) => a.score - b.score)[0];
             const recBox = document.getElementById('recommendation-box');
             
@@ -187,7 +216,6 @@
             tablesContainer.innerHTML = AppConfig.assessmentCategories.map((cat, catIdx) => {
                 const rowsHTML = cat.items.map((item, itemIdx) => {
                     
-                    // --- DYNAMIC RISK IMPACT LOGIC ---
                     let dynamicRiskText = "";
                     let riskCls = "";
 
@@ -204,7 +232,6 @@
                         dynamicRiskText = '<i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i> High Risk / Blocker';
                         riskCls = 'risk-high';
                     }
-                    // ---------------------------------
 
                     return `
                         <tr>
@@ -249,14 +276,12 @@
         function handleStatusChange(catIndex, itemIndex, newStatus) {
             AppConfig.assessmentCategories[catIndex].items[itemIndex].status = newStatus;
             
-            // Save user's audit to localStorage
             let statusMap = {};
             AppConfig.assessmentCategories.forEach(cat => {
                 cat.items.forEach(item => { statusMap[item.name] = item.status; });
             });
             localStorage.setItem('user_readiness_audit', JSON.stringify(statusMap));
 
-            // Instant live update of scores, bars, and advisory note!
             renderAll();
         }
 
