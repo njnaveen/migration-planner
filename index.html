@@ -8,6 +8,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- ADDED: External Configuration Script -->
+    <script src="./config.js"></script>
 
     <style>
         :root {
@@ -217,15 +219,8 @@
             <img src="./logo.png" alt="LZebra Logo" onerror="this.outerHTML='<h3 style=\'color:#4ade80; margin:0;\'>LZEBRA</h3>'">
         </div>
         
-        <div class="nav-menu">
-            <a class="nav-item active" id="nav-planner" onclick="switchMainView('planner')"><i class="fa-solid fa-sliders"></i> Planner Setup</a>
-            <a class="nav-item" id="nav-dashboard" onclick="switchMainView('dashboard')"><i class="fa-solid fa-chart-pie"></i> Executive Dashboard</a>
-            <a class="nav-item" id="nav-gantt" onclick="switchMainView('gantt')"><i class="fa-solid fa-list-check"></i> Project Gantt Plan</a>
-            <a class="nav-item" id="nav-timeline" onclick="switchMainView('timeline')"><i class="fa-solid fa-timeline"></i> Timeline & Waves</a>
-            <a class="nav-item" id="nav-resources" onclick="switchMainView('resources')"><i class="fa-solid fa-users"></i> Resource Matrix</a>
-            <a class="nav-item" id="nav-risks" onclick="switchMainView('risks')"><i class="fa-solid fa-triangle-exclamation"></i> Risks & Notes</a>
-            <a class="nav-item" id="nav-lifecycle" onclick="switchMainView('lifecycle')"><i class="fa-solid fa-diagram-project"></i> Deployment Phases</a>
-        </div>
+        <!-- MODIFIED: Sidebar menu items injected from config.js -->
+        <div class="nav-menu" id="sidebar-nav-container"></div>
         
         <div class="snapshot-area">
             <div class="snapshot-title">Project Snapshot</div>
@@ -619,6 +614,11 @@
         let finalExcelData = [];
 
         document.addEventListener('DOMContentLoaded', function() {
+            // ADDED: Renders the sidebar navigation using config.js
+            if (typeof renderSidebar === 'function') {
+                renderSidebar('planner');
+            }
+
             const urlParams = new URLSearchParams(window.location.search);
             let hasIncomingData = false;
             
@@ -695,7 +695,14 @@
             document.querySelectorAll('.sidebar .nav-item').forEach(n => n.classList.remove('active'));
 
             document.getElementById('view-' + viewId).classList.add('active');
-            document.getElementById('nav-' + viewId).classList.add('active');
+            
+            // Re-render sidebar active state via helper if available
+            if (typeof renderSidebar === 'function') {
+                renderSidebar(viewId);
+            } else {
+                let activeNav = document.getElementById('nav-' + viewId);
+                if (activeNav) activeNav.classList.add('active');
+            }
 
             const titles = {
                 'planner': 'Planner Setup',
@@ -706,7 +713,11 @@
                 'risks': 'Risks, Assumptions & Recommendations',
                 'lifecycle': 'Device Deployment Phases'
             };
-            document.getElementById('app-header-title').innerText = titles[viewId];
+            if (typeof AppConfig !== 'undefined' && AppConfig.pageTitles && AppConfig.pageTitles[viewId]) {
+                document.getElementById('app-header-title').innerText = AppConfig.pageTitles[viewId];
+            } else {
+                document.getElementById('app-header-title').innerText = titles[viewId];
+            }
 
             if (viewId === 'dashboard' || viewId === 'resources') {
                 setTimeout(() => { renderCharts(); }, 50); 
