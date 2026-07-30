@@ -171,8 +171,11 @@ function generateEnterpriseGanttPlan(osType, totalDevices, totalApps, startDateS
 // =========================================================
 // STRICT DEPENDENCY-AWARE SCHEDULING ENGINE (NO OVERLAPS)
 // =========================================================
+// =========================================================
+// PROPORTIONAL TIMELINE-SCALED SCHEDULING ENGINE
+// =========================================================
 function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
-    let totalProjectWeeks = totalMonths * 4; // Dynamically scales to project duration (e.g. 19 months = 76 weeks)
+    let totalProjectWeeks = totalMonths * 4; // Dynamically 56 weeks for 14 months
     let weekHeaders = [];
     for(let w=1; w<=totalProjectWeeks; w++) weekHeaders.push(`W${w}`);
 
@@ -180,33 +183,21 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
         ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
     ];
 
-    let taskEndWeekMap = {};
+    // Calculate total tasks across all phases to distribute them smoothly across 56 weeks
+    let totalTasksCount = 0;
+    enterprisePhases.forEach(group => { totalTasksCount += group.items.length; });
+
+    // Distribute tasks across the timeline proportionally
     let currentGlobalWeek = 1;
+    let weeksPerTask = Math.max(1, Math.floor(totalProjectWeeks / totalTasksCount));
 
     enterprisePhases.forEach(group => {
         group.items.forEach((item) => {
-            let durationWeeks = 1; 
             let startWeek = currentGlobalWeek;
-
-            // Resolve start week strictly based on 'Depends On' links
-            if (item.depends && item.depends !== "-") {
-                let depIds = item.depends.split(',').map(s => s.trim());
-                let maxDepEnd = 1;
-                depIds.forEach(depId => {
-                    if (taskEndWeekMap[depId]) {
-                        maxDepEnd = Math.max(maxDepEnd, taskEndWeekMap[depId]);
-                    }
-                });
-                startWeek = maxDepEnd + 1;
-            }
-
-            startWeek = Math.min(startWeek, totalProjectWeeks - 1);
-            let endWeek = Math.min(startWeek + durationWeeks - 1, totalProjectWeeks);
+            let endWeek = Math.min(startWeek + weeksPerTask, totalProjectWeeks);
             if (endWeek < startWeek) endWeek = startWeek;
 
-            // Record ending week for dependent child tasks
-            taskEndWeekMap[item.id] = endWeek;
-            currentGlobalWeek = startWeek;
+            currentGlobalWeek = endWeek; // Advance sequentially without gaps
 
             let weekCells = [];
             for(let w = 1; w <= totalProjectWeeks; w++) {
@@ -222,7 +213,7 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
                 group.phase,
                 item.task,
                 item.depends,
-                5,
+                (endWeek - startWeek + 1) * 5, // Duration in working days
                 "Not Started",
                 "0%",
                 "2026-07-30",
@@ -231,7 +222,6 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
             ];
             newExcelRows.push(row);
         });
-        currentGlobalWeek += 1; // Phase boundary separation
     });
 
     return newExcelRows;
