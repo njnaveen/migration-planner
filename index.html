@@ -96,9 +96,9 @@
         .check-list li { display: flex; align-items: center; gap: 8px; }
         .check-list i { color: #10b981; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-        .data-table th, .data-table td { border: 1px solid var(--border-color); padding: 10px; }
+        .data-table th, .data-table td { border: 1px solid var(--border-color); padding: 8px 10px; }
         .data-table th { background: #f8fafc; font-weight: 600; }
-        .data-table input[type="date"] { width: 100%; font-family: inherit; font-size: 13px; cursor: pointer; border:none; outline:none; background:transparent;}
+        .data-table input[type="date"] { width: 100%; font-family: inherit; font-size: 12px; cursor: pointer; border:none; outline:none; background:transparent;}
         .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
         .dot-green { background: #10b981; } .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; }
 
@@ -359,10 +359,21 @@
                             <div class="card">
                                 <div class="card-header"><i class="fa-solid fa-clock"></i> Project Timeline Target</div>
                                 <div style="overflow-x: auto;">
-                                    <table class="data-table" style="min-width: 300px;">
-                                        <tr><td>Project Start</td><td><input type="date" id="date-start" onchange="calculatePlan()"></td></tr>
-                                        <tr><td>Pilot Start</td><td><input type="date" id="date-pilot" readonly style="color: var(--text-muted);"></td></tr>
-                                        <tr><td>Production Start</td><td><input type="date" id="date-prod" readonly style="color: var(--text-muted);"></td></tr>
+                                    <table class="data-table" style="min-width: 320px; font-size: 12px;">
+                                        <thead>
+                                            <tr>
+                                                <th>Phase / Milestone</th>
+                                                <th>Start Date</th>
+                                                <th>End Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td style="font-weight:600;">Project</td><td><input type="date" id="date-project-start" onchange="calculatePlan()"></td><td><input type="date" id="date-project-end" readonly style="color: var(--text-muted);"></td></tr>
+                                            <tr><td style="font-weight:600;">Solution Design</td><td><input type="date" id="date-design-start" readonly style="color: var(--text-muted);"></td><td><input type="date" id="date-design-end" readonly style="color: var(--text-muted);"></td></tr>
+                                            <tr><td style="font-weight:600;">Pilot</td><td><input type="date" id="date-pilot-start" readonly style="color: var(--text-muted);"></td><td><input type="date" id="date-pilot-end" readonly style="color: var(--text-muted);"></td></tr>
+                                            <tr><td style="font-weight:600;">Migration</td><td><input type="date" id="date-migration-start" readonly style="color: var(--text-muted);"></td><td><input type="date" id="date-migration-end" readonly style="color: var(--text-muted);"></td></tr>
+                                            <tr><td style="font-weight:600;">Hypercare</td><td><input type="date" id="date-hypercare-start" readonly style="color: var(--text-muted);"></td><td><input type="date" id="date-hypercare-end" readonly style="color: var(--text-muted);"></td></tr>
+                                        </tbody>
                                     </table>
                                 </div>
                             </div>
@@ -679,7 +690,7 @@
                 if (pw) { pw.innerHTML = ''; }
             }
 
-            document.getElementById('date-start').value = new Date().toISOString().split('T')[0];
+            document.getElementById('date-project-start').value = new Date().toISOString().split('T')[0];
             
             handlePlatformChange();
             calculatePlan();
@@ -795,12 +806,6 @@
             document.getElementById('view-assumptions-list').innerHTML = assumptions;
         }
 
-        function addDaysToDate(dateStr, days) {
-            let d = new Date(dateStr);
-            d.setDate(d.getDate() + days);
-            return d.toISOString().split('T')[0];
-        }
-
         // ==========================================
         // SECURE "THIN CLIENT" CALCULATION API
         // ==========================================
@@ -811,7 +816,7 @@
             let batchSize = parseInt(document.getElementById('batchSize').value);
             let batchesPerWeek = parseInt(document.getElementById('batchesPerWeek').value);
             let totalApps = parseInt(document.getElementById('totalApps').value) || 0;
-            let startDateStr = document.getElementById('date-start').value || new Date().toISOString().split('T')[0];
+            let projectStartStr = document.getElementById('date-project-start').value || new Date().toISOString().split('T')[0];
 
             if(devices > 0 && batchSize > 0 && batchesPerWeek > 0) {
                 
@@ -825,7 +830,7 @@
                         batchesPerWeek: batchesPerWeek,
                         totalApps: totalApps,
                         isUnlocked: isUnlocked,
-                        startDateStr: startDateStr
+                        startDateStr: projectStartStr
                     })
                 });
 
@@ -833,15 +838,32 @@
 
                 // --- INTEGRATE DYNAMIC MONTH-SCALED ENTERPRISE PLAN ---
                 if (typeof generateEnterpriseGanttPlan === 'function' && typeof applyStrictPhaseMapping === 'function') {
-                    let enterprisePhases = generateEnterpriseGanttPlan(osType, devices, totalApps, startDateStr);
-                    // Automatically scales to data.totalMonths (e.g. 14 or 19 months -> 56 or 76 weeks)
+                    let enterprisePhases = generateEnterpriseGanttPlan(osType, devices, totalApps, projectStartStr);
                     data.finalExcelData = applyStrictPhaseMapping(enterprisePhases, data.totalMonths || 14);
                 }
                 // --------------------------------------------------------
 
-                document.getElementById('date-pilot').value = data.pilotDate;
-                document.getElementById('date-prod').value = data.prodDate;
+                // --- UPDATE EXPANDED PHASE START & END DATES ---
+                let totalMonths = data.totalMonths || 14;
+                let totalWeeks = totalMonths * 4;
                 
+                function addWeeksToDate(dateStr, weeks) {
+                    let d = new Date(dateStr);
+                    d.setDate(d.getDate() + (weeks * 7));
+                    return d.toISOString().split('T')[0];
+                }
+
+                document.getElementById('date-project-end').value = addWeeksToDate(projectStartStr, totalWeeks);
+                document.getElementById('date-design-start').value = addWeeksToDate(projectStartStr, 0);
+                document.getElementById('date-design-end').value = addWeeksToDate(projectStartStr, Math.round(totalWeeks * 0.3)); 
+                document.getElementById('date-pilot-start').value = addWeeksToDate(projectStartStr, Math.round(totalWeeks * 0.3));
+                document.getElementById('date-pilot-end').value = addWeeksToDate(projectStartStr, Math.round(totalWeeks * 0.4));   
+                document.getElementById('date-migration-start').value = addWeeksToDate(projectStartStr, Math.round(totalWeeks * 0.4));
+                document.getElementById('date-migration-end').value = addWeeksToDate(projectStartStr, Math.round(totalWeeks * 0.85)); 
+                document.getElementById('date-hypercare-start').value = addWeeksToDate(projectStartStr, Math.round(totalWeeks * 0.85));
+                document.getElementById('date-hypercare-end').value = addWeeksToDate(projectStartStr, totalWeeks);
+                // -----------------------------------------------
+
                 document.getElementById('dash-waves-table').innerHTML = data.waveTable;
                 document.getElementById('view-waves-table').innerHTML = data.waveTable;
 
@@ -879,7 +901,7 @@
                         detailedGanttHTML += `<th class="col-code">${headers[0]}</th>`;
                         detailedGanttHTML += `<th class="col-phase">${headers[1]}</th>`;
                         detailedGanttHTML += `<th class="col-task">${headers[2]}</th>`;
-                        detailedGanttHTML += `<th style="background:#fde047; color:#0f172a; text-align:center;">${headers[3]}</th>`; // Depends On Column Header
+                        detailedGanttHTML += `<th style="background:#fde047; color:#0f172a; text-align:center;">${headers[3]}</th>`;
                         
                         for(let i=4; i<headers.length; i++) detailedGanttHTML += `<th>${headers[i]}</th>`;
                         detailedGanttHTML += '</tr></thead><tbody>';
@@ -894,7 +916,7 @@
                             detailedGanttHTML += `<td class="col-code">${row[0]}</td>`;
                             detailedGanttHTML += `<td class="col-phase" style="font-weight: ${isNewPhase ? 'bold':'normal'}; color: ${isNewPhase ? '#0f172a':'transparent'};">${row[1]}</td>`;
                             detailedGanttHTML += `<td class="col-task">${row[2]}</td>`;
-                            detailedGanttHTML += `<td style="font-weight:600; color:#334155; text-align:center; background:#fefce8;">${row[3]}</td>`; // Depends On Data Cell
+                            detailedGanttHTML += `<td style="font-weight:600; color:#334155; text-align:center; background:#fefce8;">${row[3]}</td>`;
                             
                             for(let i = 4; i < row.length; i++) {
                                 if (row[i] === 'Active') {
