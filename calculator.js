@@ -174,8 +174,10 @@ function generateEnterpriseGanttPlan(osType, totalDevices, totalApps, startDateS
 // =========================================================
 // PROPORTIONAL TIMELINE-SCALED SCHEDULING ENGINE
 // =========================================================
+// PROPORTIONAL STAGGERED SCHEDULING ENGINE (NO BUNCHING)
+// =========================================================
 function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
-    let totalProjectWeeks = totalMonths * 4; // Dynamically 56 weeks for 14 months
+    let totalProjectWeeks = totalMonths * 4; // Exactly 56 weeks for 14 months
     let weekHeaders = [];
     for(let w=1; w<=totalProjectWeeks; w++) weekHeaders.push(`W${w}`);
 
@@ -183,21 +185,21 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
         ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
     ];
 
-    // Calculate total tasks across all phases to distribute them smoothly across 56 weeks
     let totalTasksCount = 0;
     enterprisePhases.forEach(group => { totalTasksCount += group.items.length; });
 
-    // Distribute tasks across the timeline proportionally
-    let currentGlobalWeek = 1;
-    let weeksPerTask = Math.max(1, Math.floor(totalProjectWeeks / totalTasksCount));
+    // Calculate precise fractional/step progression across 56 weeks
+    let currentWeekPos = 1.0;
+    let stepSize = totalProjectWeeks / totalTasksCount;
 
     enterprisePhases.forEach(group => {
         group.items.forEach((item) => {
-            let startWeek = currentGlobalWeek;
-            let endWeek = Math.min(startWeek + weeksPerTask, totalProjectWeeks);
-            if (endWeek < startWeek) endWeek = startWeek;
+            let startWeek = Math.floor(currentWeekPos);
+            let endWeek = Math.min(Math.ceil(currentWeekPos + stepSize), totalProjectWeeks);
+            if (startWeek >= totalProjectWeeks) startWeek = totalProjectWeeks - 1;
+            if (endWeek <= startWeek) endWeek = startWeek + 1;
 
-            currentGlobalWeek = endWeek; // Advance sequentially without gaps
+            currentWeekPos += stepSize; // Smoothly advance through the 56 weeks
 
             let weekCells = [];
             for(let w = 1; w <= totalProjectWeeks; w++) {
@@ -213,7 +215,7 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
                 group.phase,
                 item.task,
                 item.depends,
-                (endWeek - startWeek + 1) * 5, // Duration in working days
+                Math.round((endWeek - startWeek + 1) * 5), // Working days
                 "Not Started",
                 "0%",
                 "2026-07-30",
