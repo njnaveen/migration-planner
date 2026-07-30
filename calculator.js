@@ -171,8 +171,11 @@ function generateEnterpriseGanttPlan(osType, totalDevices, totalApps, startDateS
 // =========================================================
 // DYNAMIC MONTH-ALIGNED MAPPING (MATCHES 14 MONTHS / 56 WEEKS)
 // =========================================================
+// =========================================================
+// DYNAMIC MONTH-ALIGNED MAPPING (SCALES TO ANY MONTHS)
+// =========================================================
 function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
-    let totalProjectWeeks = totalMonths * 4; // Exactly 56 weeks for 14 months
+    let totalProjectWeeks = totalMonths * 4; // Dynamically scales (e.g. 19 months = 76 weeks)
     let weekHeaders = [];
     for(let w=1; w<=totalProjectWeeks; w++) weekHeaders.push(`W${w}`);
 
@@ -180,18 +183,25 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
         ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
     ];
 
+    // Proportional scale factor relative to 14 standard months (56 weeks)
+    let scale = totalProjectWeeks / 56;
+
     enterprisePhases.forEach(group => {
-        // STRICT NON-OVERLAPPING WEEKS MATCHING 14-MONTH MATRIX
-        let startWeek = 1, endWeek = 8;     // Discovery & Design (M1-M2: W1-W8)
+        // Scaled non-overlapping week boundaries
+        let startWeek = Math.round(1 * scale), endWeek = Math.round(8 * scale);
         
-        if (group.phase.includes("Solution Design"))      { startWeek = 5;  endWeek = 16; } // Design (M2-M4: W5-W16)
-        else if (group.phase.includes("Infrastructure")) { startWeek = 9;  endWeek = 16; } // Infra Prep (M3-M4: W9-W16)
-        else if (group.phase.includes("Application"))    { startWeek = 9;  endWeek = 20; } // App Packaging (M3-M5: W9-W20)
-        else if (group.phase.includes("Security"))       { startWeek = 13; endWeek = 20; } // Security (M4-M5: W13-W20)
-        else if (group.phase.includes("Pilot"))          { startWeek = 17; endWeek = 20; } // Pilot (M5 strictly: W17-W20)
-        else if (group.phase.includes("Migration"))      { startWeek = 21; endWeek = 48; } // Migration Waves (M6-M12: W21-W48)
-        else if (group.phase.includes("Reporting"))      { startWeek = 45; endWeek = 52; } // Reporting (M12-M13: W45-W52)
-        else if (group.phase.includes("Hypercare"))      { startWeek = 49; endWeek = 56; } // Hypercare (M13-M14: W49-W56)
+        if (group.phase.includes("Solution Design"))      { startWeek = Math.round(5 * scale);  endWeek = Math.round(16 * scale); }
+        else if (group.phase.includes("Infrastructure")) { startWeek = Math.round(9 * scale);  endWeek = Math.round(16 * scale); }
+        else if (group.phase.includes("Application"))    { startWeek = Math.round(9 * scale);  endWeek = Math.round(20 * scale); }
+        else if (group.phase.includes("Security"))       { startWeek = Math.round(13 * scale); endWeek = Math.round(20 * scale); }
+        else if (group.phase.includes("Pilot"))          { startWeek = Math.round(17 * scale); endWeek = Math.round(20 * scale); }
+        else if (group.phase.includes("Migration"))      { startWeek = Math.round(21 * scale); endWeek = Math.round(48 * scale); }
+        else if (group.phase.includes("Reporting"))      { startWeek = Math.round(45 * scale); endWeek = Math.round(52 * scale); }
+        else if (group.phase.includes("Hypercare"))      { startWeek = Math.round(49 * scale); endWeek = Math.round(totalProjectWeeks); }
+
+        // Ensure bounds don't exceed total project weeks
+        startWeek = Math.max(1, startWeek);
+        endWeek = Math.min(endWeek, totalProjectWeeks);
 
         let groupTaskCount = group.items.length;
         let span = Math.max(1, Math.floor((endWeek - startWeek + 1) / groupTaskCount));
