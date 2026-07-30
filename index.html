@@ -831,11 +831,11 @@
 
                 const data = await response.json();
 
-                // --- INTEGRATE ENTERPRISE 9-PHASE PLAN & DEPENDENCIES ---
+                // --- INTEGRATE SEQUENTIAL ENTERPRISE 9-PHASE PLAN & DEPENDENCIES ---
                 if (typeof generateEnterpriseGanttPlan === 'function') {
                     let enterprisePhases = generateEnterpriseGanttPlan(osType, devices, totalApps, startDateStr);
                     
-                    let weeksCount = data.finalExcelData && data.finalExcelData[0] ? data.finalExcelData[0].length - 8 : 12;
+                    let weeksCount = data.finalExcelData && data.finalExcelData[0] ? data.finalExcelData[0].length - 8 : 14;
                     let weekHeaders = [];
                     for(let w=1; w<=weeksCount; w++) weekHeaders.push(`W${w}`);
 
@@ -843,9 +843,23 @@
                         ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
                     ];
 
+                    let currentTaskIndex = 0;
                     enterprisePhases.forEach(group => {
-                        group.items.forEach((item, idx) => {
+                        group.items.forEach((item) => {
                             let durationDays = 5; 
+                            let startWeek = Math.min(Math.floor(currentTaskIndex / 2) + 1, weeksCount);
+                            let spanWeeks = Math.max(1, Math.floor(durationDays / 5));
+                            let endWeek = Math.min(startWeek + spanWeeks - 1, weeksCount);
+
+                            let weekCells = [];
+                            for(let w = 1; w <= weeksCount; w++) {
+                                if(w >= startWeek && w <= endWeek) {
+                                    weekCells.push("Active");
+                                } else {
+                                    weekCells.push("");
+                                }
+                            }
+
                             let row = [
                                 item.id,
                                 group.phase,
@@ -856,9 +870,10 @@
                                 "0%",
                                 startDateStr,
                                 startDateStr,
-                                ...Array(weeksCount).fill(idx < weeksCount ? "Active" : "")
+                                ...weekCells
                             ];
                             newExcelRows.push(row);
+                            currentTaskIndex++;
                         });
                     });
                     data.finalExcelData = newExcelRows;
