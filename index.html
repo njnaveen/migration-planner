@@ -832,27 +832,33 @@
                 const data = await response.json();
 
                 // --- INTEGRATE SEQUENTIAL ENTERPRISE 9-PHASE PLAN & DEPENDENCIES ---
+                // --- INTEGRATE ACCURATE TIMELINE-ALIGNED ENTERPRISE PLAN ---
                 if (typeof generateEnterpriseGanttPlan === 'function') {
                     let enterprisePhases = generateEnterpriseGanttPlan(osType, devices, totalApps, startDateStr);
                     
-                    let weeksCount = data.finalExcelData && data.finalExcelData[0] ? data.finalExcelData[0].length - 8 : 14;
+                    // Scale total project weeks to match 11 months (~44 weeks)
+                    let totalProjectWeeks = 44;
                     let weekHeaders = [];
-                    for(let w=1; w<=weeksCount; w++) weekHeaders.push(`W${w}`);
+                    for(let w=1; w<=totalProjectWeeks; w++) weekHeaders.push(`W${w}`);
 
                     let newExcelRows = [
                         ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
                     ];
 
+                    // Count total tasks to distribute them evenly across 44 weeks
+                    let totalTasksCount = 0;
+                    enterprisePhases.forEach(g => totalTasksCount += g.items.length);
+
                     let currentTaskIndex = 0;
                     enterprisePhases.forEach(group => {
                         group.items.forEach((item) => {
                             let durationDays = 5; 
-                            let startWeek = Math.min(Math.floor(currentTaskIndex / 2) + 1, weeksCount);
-                            let spanWeeks = Math.max(1, Math.floor(durationDays / 5));
-                            let endWeek = Math.min(startWeek + spanWeeks - 1, weeksCount);
+                            // Proportional week calculation across 44 weeks
+                            let startWeek = Math.max(1, Math.min(Math.floor((currentTaskIndex / totalTasksCount) * totalProjectWeeks) + 1, totalProjectWeeks));
+                            let endWeek = Math.min(startWeek + 2, totalProjectWeeks); // Span across 2-3 weeks for workflow continuity
 
                             let weekCells = [];
-                            for(let w = 1; w <= weeksCount; w++) {
+                            for(let w = 1; w <= totalProjectWeeks; w++) {
                                 if(w >= startWeek && w <= endWeek) {
                                     weekCells.push("Active");
                                 } else {
