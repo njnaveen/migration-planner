@@ -129,7 +129,7 @@ function generateEnterpriseGanttPlan(osType, totalDevices, totalApps, startDateS
     ];
     tasks.push({ phase: "Phase 6 – Pilot", items: phase6 });
 
-    // --- PHASE 7: Migration Waves (Wave 0 to Wave 7) ---
+    // --- PHASE 7: Migration Waves ---
     let phase7 = [];
     for(let w = 0; w <= 7; w++) {
         let waveName = w === 0 ? "Wave 0 (IT & VIP Pilot)" : `Wave ${w} Rollout`;
@@ -169,9 +169,10 @@ function generateEnterpriseGanttPlan(osType, totalDevices, totalApps, startDateS
 }
 
 // =========================================================
-// STRICT BOUNDARY WEEK ASSIGNMENT LOGIC (NO OVERLAPS)
+// DYNAMIC MONTH-ALIGNED MAPPING (MATCHES 14 MONTHS / 56 WEEKS)
 // =========================================================
-function applyStrictPhaseMapping(enterprisePhases, totalProjectWeeks = 48) {
+function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
+    let totalProjectWeeks = totalMonths * 4; // Exactly 56 weeks for 14 months
     let weekHeaders = [];
     for(let w=1; w<=totalProjectWeeks; w++) weekHeaders.push(`W${w}`);
 
@@ -179,20 +180,18 @@ function applyStrictPhaseMapping(enterprisePhases, totalProjectWeeks = 48) {
         ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
     ];
 
-    enterprisePhases.exports = true;
-
     enterprisePhases.forEach(group => {
-        // STRICT NON-OVERLAPPING MONTH/WEEK WINDOWS (M1 to M12)
-        let startWeek = 1, endWeek = 8;     // Phase 1: Discovery & Assessment (M1-M2: W1-W8)
+        // STRICT NON-OVERLAPPING WEEKS MATCHING 14-MONTH MATRIX
+        let startWeek = 1, endWeek = 8;     // Discovery & Design (M1-M2: W1-W8)
         
-        if (group.phase.includes("Solution Design"))      { startWeek = 9;  endWeek = 16; } // Phase 2: Design (M3-M4: W9-W16)
-        else if (group.phase.includes("Infrastructure")) { startWeek = 9;  endWeek = 16; } // Phase 3: Infra Prep (M3-M4: W9-W16)
-        else if (group.phase.includes("Application"))    { startWeek = 9;  endWeek = 20; } // Phase 4: App Packaging (M3-M5: W9-W20)
-        else if (group.phase.includes("Security"))       { startWeek = 13; endWeek = 20; } // Phase 5: Security (M4-M5: W13-W20)
-        else if (group.phase.includes("Pilot"))          { startWeek = 17; endWeek = 20; } // Phase 6: Pilot (M5 strictly: W17-W20)
-        else if (group.phase.includes("Migration"))      { startWeek = 21; endWeek = 40; } // Phase 7: Migration Waves (M6-M10 strictly: W21-W40)
-        else if (group.phase.includes("Reporting"))      { startWeek = 37; endWeek = 44; } // Phase 8: Reporting (M10-M11: W37-W44)
-        else if (group.phase.includes("Hypercare"))      { startWeek = 41; endWeek = 48; } // Phase 9: Hypercare (M11-M12: W41-W48)
+        if (group.phase.includes("Solution Design"))      { startWeek = 5;  endWeek = 16; } // Design (M2-M4: W5-W16)
+        else if (group.phase.includes("Infrastructure")) { startWeek = 9;  endWeek = 16; } // Infra Prep (M3-M4: W9-W16)
+        else if (group.phase.includes("Application"))    { startWeek = 9;  endWeek = 20; } // App Packaging (M3-M5: W9-W20)
+        else if (group.phase.includes("Security"))       { startWeek = 13; endWeek = 20; } // Security (M4-M5: W13-W20)
+        else if (group.phase.includes("Pilot"))          { startWeek = 17; endWeek = 20; } // Pilot (M5 strictly: W17-W20)
+        else if (group.phase.includes("Migration"))      { startWeek = 21; endWeek = 48; } // Migration Waves (M6-M12: W21-W48)
+        else if (group.phase.includes("Reporting"))      { startWeek = 45; endWeek = 52; } // Reporting (M12-M13: W45-W52)
+        else if (group.phase.includes("Hypercare"))      { startWeek = 49; endWeek = 56; } // Hypercare (M13-M14: W49-W56)
 
         let groupTaskCount = group.items.length;
         let span = Math.max(1, Math.floor((endWeek - startWeek + 1) / groupTaskCount));
