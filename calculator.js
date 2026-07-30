@@ -167,3 +167,65 @@ function generateEnterpriseGanttPlan(osType, totalDevices, totalApps, startDateS
 
     return tasks;
 }
+
+// =========================================================
+// STRICT BOUNDARY WEEK ASSIGNMENT LOGIC (NO OVERLAPS)
+// =========================================================
+function applyStrictPhaseMapping(enterprisePhases, totalProjectWeeks = 48) {
+    let weekHeaders = [];
+    for(let w=1; w<=totalProjectWeeks; w++) weekHeaders.push(`W${w}`);
+
+    let newExcelRows = [
+        ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
+    ];
+
+    enterprisePhases.exports = true;
+
+    enterprisePhases.forEach(group => {
+        // STRICT NON-OVERLAPPING MONTH/WEEK WINDOWS (M1 to M12)
+        let startWeek = 1, endWeek = 8;     // Phase 1: Discovery & Assessment (M1-M2: W1-W8)
+        
+        if (group.phase.includes("Solution Design"))      { startWeek = 9;  endWeek = 16; } // Phase 2: Design (M3-M4: W9-W16)
+        else if (group.phase.includes("Infrastructure")) { startWeek = 9;  endWeek = 16; } // Phase 3: Infra Prep (M3-M4: W9-W16)
+        else if (group.phase.includes("Application"))    { startWeek = 9;  endWeek = 20; } // Phase 4: App Packaging (M3-M5: W9-W20)
+        else if (group.phase.includes("Security"))       { startWeek = 13; endWeek = 20; } // Phase 5: Security (M4-M5: W13-W20)
+        else if (group.phase.includes("Pilot"))          { startWeek = 17; endWeek = 20; } // Phase 6: Pilot (M5 strictly: W17-W20)
+        else if (group.phase.includes("Migration"))      { startWeek = 21; endWeek = 40; } // Phase 7: Migration Waves (M6-M10 strictly: W21-W40)
+        else if (group.phase.includes("Reporting"))      { startWeek = 37; endWeek = 44; } // Phase 8: Reporting (M10-M11: W37-W44)
+        else if (group.phase.includes("Hypercare"))      { startWeek = 41; endWeek = 48; } // Phase 9: Hypercare (M11-M12: W41-W48)
+
+        let groupTaskCount = group.items.length;
+        let span = Math.max(1, Math.floor((endWeek - startWeek + 1) / groupTaskCount));
+
+        group.items.forEach((item, idx) => {
+            let taskStart = Math.min(startWeek + (idx * span), endWeek);
+            let taskEnd = Math.min(taskStart + span, endWeek);
+            if (taskStart === taskEnd) taskEnd = Math.min(taskStart + 1, totalProjectWeeks);
+
+            let weekCells = [];
+            for(let w = 1; w <= totalProjectWeeks; w++) {
+                if(w >= taskStart && w <= taskEnd) {
+                    weekCells.push("Active");
+                } else {
+                    weekCells.push("");
+                }
+            }
+
+            let row = [
+                item.id,
+                group.phase,
+                item.task,
+                item.depends,
+                5,
+                "Not Started",
+                "0%",
+                "2026-07-30",
+                "2026-07-30",
+                ...weekCells
+            ];
+            newExcelRows.push(row);
+        });
+    });
+
+    return newExcelRows;
+}
