@@ -169,13 +169,10 @@ function generateEnterpriseGanttPlan(osType, totalDevices, totalApps, startDateS
 }
 
 // =========================================================
-// DYNAMIC MONTH-ALIGNED MAPPING (MATCHES 14 MONTHS / 56 WEEKS)
-// =========================================================
-// =========================================================
-// DYNAMIC MONTH-ALIGNED MAPPING (SCALES TO ANY MONTHS)
+// STRICT DEPENDENCY-AWARE SCHEDULING ENGINE (NO OVERLAPS)
 // =========================================================
 function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
-    let totalProjectWeeks = totalMonths * 4; // Dynamically scales (e.g. 19 months = 76 weeks)
+    let totalProjectWeeks = totalMonths * 4; // Dynamically scales to project duration (e.g. 19 months = 76 weeks)
     let weekHeaders = [];
     for(let w=1; w<=totalProjectWeeks; w++) weekHeaders.push(`W${w}`);
 
@@ -183,37 +180,37 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
         ["Milestone Code", "Phase", "Task / Milestone", "Depends On", "Duration (Days)", "Status", "% Completed", "Start Date", "End Date", ...weekHeaders]
     ];
 
-    // Proportional scale factor relative to 14 standard months (56 weeks)
-    let scale = totalProjectWeeks / 56;
+    let taskEndWeekMap = {};
+    let currentGlobalWeek = 1;
 
     enterprisePhases.forEach(group => {
-        // Scaled non-overlapping week boundaries
-        let startWeek = Math.round(1 * scale), endWeek = Math.round(8 * scale);
-        
-        if (group.phase.includes("Solution Design"))      { startWeek = Math.round(5 * scale);  endWeek = Math.round(16 * scale); }
-        else if (group.phase.includes("Infrastructure")) { startWeek = Math.round(9 * scale);  endWeek = Math.round(16 * scale); }
-        else if (group.phase.includes("Application"))    { startWeek = Math.round(9 * scale);  endWeek = Math.round(20 * scale); }
-        else if (group.phase.includes("Security"))       { startWeek = Math.round(13 * scale); endWeek = Math.round(20 * scale); }
-        else if (group.phase.includes("Pilot"))          { startWeek = Math.round(17 * scale); endWeek = Math.round(20 * scale); }
-        else if (group.phase.includes("Migration"))      { startWeek = Math.round(21 * scale); endWeek = Math.round(48 * scale); }
-        else if (group.phase.includes("Reporting"))      { startWeek = Math.round(45 * scale); endWeek = Math.round(52 * scale); }
-        else if (group.phase.includes("Hypercare"))      { startWeek = Math.round(49 * scale); endWeek = Math.round(totalProjectWeeks); }
+        group.items.forEach((item) => {
+            let durationWeeks = 1; 
+            let startWeek = currentGlobalWeek;
 
-        // Ensure bounds don't exceed total project weeks
-        startWeek = Math.max(1, startWeek);
-        endWeek = Math.min(endWeek, totalProjectWeeks);
+            // Resolve start week strictly based on 'Depends On' links
+            if (item.depends && item.depends !== "-") {
+                let depIds = item.depends.split(',').map(s => s.trim());
+                let maxDepEnd = 1;
+                depIds.forEach(depId => {
+                    if (taskEndWeekMap[depId]) {
+                        maxDepEnd = Math.max(maxDepEnd, taskEndWeekMap[depId]);
+                    }
+                });
+                startWeek = maxDepEnd + 1;
+            }
 
-        let groupTaskCount = group.items.length;
-        let span = Math.max(1, Math.floor((endWeek - startWeek + 1) / groupTaskCount));
+            startWeek = Math.min(startWeek, totalProjectWeeks - 1);
+            let endWeek = Math.min(startWeek + durationWeeks - 1, totalProjectWeeks);
+            if (endWeek < startWeek) endWeek = startWeek;
 
-        group.items.forEach((item, idx) => {
-            let taskStart = Math.min(startWeek + (idx * span), endWeek);
-            let taskEnd = Math.min(taskStart + span, endWeek);
-            if (taskStart === taskEnd) taskEnd = Math.min(taskStart + 1, totalProjectWeeks);
+            // Record ending week for dependent child tasks
+            taskEndWeekMap[item.id] = endWeek;
+            currentGlobalWeek = startWeek;
 
             let weekCells = [];
             for(let w = 1; w <= totalProjectWeeks; w++) {
-                if(w >= taskStart && w <= taskEnd) {
+                if(w >= startWeek && w <= endWeek) {
                     weekCells.push("Active");
                 } else {
                     weekCells.push("");
@@ -234,6 +231,7 @@ function applyStrictPhaseMapping(enterprisePhases, totalMonths = 14) {
             ];
             newExcelRows.push(row);
         });
+        currentGlobalWeek += 1; // Phase boundary separation
     });
 
     return newExcelRows;
