@@ -759,6 +759,12 @@
             if (viewId === 'dashboard' || viewId === 'resources') {
                 setTimeout(() => { renderCharts(); }, 50); 
             }
+            if (viewId === 'lifecycle') {
+                // Ensures lifecycle cards render even if view is loaded directly
+                if (typeof calculatePlan === 'function') {
+                    calculatePlan();
+                }
+            }
         }
 
         function switchWizardTab(tabIndex) {
