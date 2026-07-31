@@ -68,10 +68,12 @@
         .status-select.in_progress { background: #ffedd5; color: #9a3412; border-color: #fdba74; }
         .status-select.planned     { background: #fef9c3; color: #854d0e; border-color: #fde047; }
         .status-select.missing     { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .status-select.na          { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
         
         .risk-low    { color: #16a34a; font-weight: 600; }
         .risk-medium { color: #d97706; font-weight: 600; }
         .risk-high   { color: #dc2626; font-weight: 700; }
+        .risk-na     { color: #64748b; font-weight: 500; font-style: italic; }
 
         /* PRINT STYLING OPTIMIZATION */
         @media print {
@@ -146,7 +148,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Check paywall lock before showing page
             let unlockUntil = localStorage.getItem('planner_unlocked_until');
             let isUnlocked = (localStorage.getItem('planner_unlocked') === 'true') || 
                              (unlockUntil && new Date().getTime() < parseInt(unlockUntil));
@@ -157,7 +158,6 @@
                 return;
             }
 
-            // Safe render of sidebar
             if (typeof renderSidebar === 'function') {
                 renderSidebar('config');
             } else {
@@ -169,7 +169,6 @@
                 return;
             }
 
-            // Load saved user audit choices from localStorage if available
             const savedAudit = localStorage.getItem('user_readiness_audit');
             if (savedAudit) {
                 try {
@@ -186,7 +185,6 @@
 
             renderAll();
 
-            // Auto-print trigger if requested from Reports Hub
             if (new URLSearchParams(window.location.search).get('print') === 'true') {
                 setTimeout(() => {
                     window.print();
@@ -194,15 +192,12 @@
             }
         });
 
-        // Main rendering function
         function renderAll() {
             if (typeof AppConfig === 'undefined') return;
             const scores = AppConfig.calculateScores();
             
-            // 1. Update Overall Score
             document.getElementById('overall-score').innerText = scores.overall + '%';
 
-            // 2. Update Progress Bars
             const scoreGridEl = document.getElementById('score-grid');
             scoreGridEl.innerHTML = scores.categories.map(cat => {
                 let col = cat.score >= 85 ? '#4ade80' : (cat.score >= 65 ? '#facc15' : '#f87171');
@@ -219,7 +214,6 @@
                 `;
             }).join('');
 
-            // 3. Generate Dynamic Executive Advisory Note
             const lowestCat = [...scores.categories].sort((a,b) => a.score - b.score)[0];
             const recBox = document.getElementById('recommendation-box');
             
@@ -229,7 +223,6 @@
                 recBox.innerHTML = `<strong><i class="fa-solid fa-lightbulb" style="margin-right:5px;"></i> Executive Advisory Recommendation:</strong> Your overall readiness is at <strong>${scores.overall}%</strong>. Attention is recommended for <strong>${lowestCat.title}</strong> (${lowestCat.score}% ready). Ensure remaining high-risk items are configured prior to initiating mass production rollouts.`;
             }
 
-            // 4. Render Interactive Assessment Tables with DYNAMIC RISK IMPACT
             const tablesContainer = document.getElementById('assessment-tables-container');
             tablesContainer.innerHTML = AppConfig.assessmentCategories.map((cat, catIdx) => {
                 const rowsHTML = cat.items.map((item, itemIdx) => {
@@ -249,6 +242,9 @@
                     } else if (item.status === 'missing') {
                         dynamicRiskText = '<i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i> High Risk / Blocker';
                         riskCls = 'risk-high';
+                    } else if (item.status === 'na') {
+                        dynamicRiskText = 'Not Applicable';
+                        riskCls = 'risk-na';
                     }
 
                     return `
@@ -261,6 +257,7 @@
                                     <option value="in_progress" ${item.status === 'in_progress' ? 'selected' : ''}>🟠 In Progress</option>
                                     <option value="planned"     ${item.status === 'planned'     ? 'selected' : ''}>🟡 Planned</option>
                                     <option value="missing"     ${item.status === 'missing'     ? 'selected' : ''}>🔴 Not Configured</option>
+                                    <option value="na"          ${item.status === 'na'          ? 'selected' : ''}>⚪ Not Applicable</option>
                                 </select>
                             </td>
                             <td class="${riskCls}">${dynamicRiskText}</td>
@@ -290,7 +287,6 @@
             }).join('');
         }
 
-        // Triggered instantly whenever the user changes any status dropdown
         function handleStatusChange(catIndex, itemIndex, newStatus) {
             AppConfig.assessmentCategories[catIndex].items[itemIndex].status = newStatus;
             
