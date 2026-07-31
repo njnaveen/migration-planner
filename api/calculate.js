@@ -76,7 +76,7 @@ export default function handler(req, res) {
         ['App Packaging', 'App', appFTE, '#f59e0b'],
         ['GPO/Policy/CA Expert', 'Gpo', Math.max(1, Math.ceil(devices / 20000)), '#8b5cf6'],
         ['Deployment Engineers', 'Dep', deploy, '#ec4899'],
-        ['Hypercare', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800)), '#64748b']
+        ['Hypercare / BAU Support', 'Hyp', Math.max(1, Math.ceil(actualWeeklyThroughput / 800)), '#64748b']
     ];
 
     let matrixHeader = `<tr><td style="border: none; background: white;"></td><td colspan="${inceptionM + discoveryM}" class="bg-assess">Discovery & Design</td><td colspan="${designM + prepM}" class="bg-found">Preparation</td><td colspan="${pilotM}" class="bg-pilot">Pilot</td><td colspan="${migrationM}" class="bg-mig">Migration</td><td colspan="${hypercareM}" class="bg-hyp">Hypercare</td></tr>`;
