@@ -127,7 +127,7 @@ function renderSidebar(activeKey) {
         { key: 'resources', label: 'Resource Matrix', icon: 'fa-solid fa-users', view: 'index.html?view=resources' },
         { key: 'risks', label: 'Risks & Notes', icon: 'fa-solid fa-triangle-exclamation', view: 'index.html?view=risks' },
         { key: 'lifecycle', label: 'Deployment Phases', icon: 'fa-solid fa-diagram-project', view: 'index.html?view=lifecycle' },
-        { key: 'config', label: 'Configuration & Baselines', icon: 'fa-solid fa-gear', view: 'configuration.html' },
+        { key: 'config', label: 'Migration Readiness Matrix', icon: 'fa-solid fa-gear', view: 'configuration.html' },
         { key: 'reports', label: 'Reports & Export', icon: 'fa-solid fa-file-pdf', view: 'reports.html' }
     ];
 
